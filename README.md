@@ -37,9 +37,11 @@ js/ai.js            computer opponent
 js/data.js          profile, packs, campaign, draft (localStorage)
 js/net.js           peer-to-peer duels
 js/ui.js            screens and battle UI
-assets/             card sheets, animation strips, fonts
+assets/             card sheets, animation strips, fonts, GUI pieces
 ```
 No build step. Serve the folder with any static server, e.g. `python3 -m http.server`.
 
 ## Credits
 Card art: **Pixel Plebes** animated digital playing cards by **Devlyn JD** (2018–2024), including the United Falls suit, Bloodless Hearts and the Classic deck. Used with credit, as the artist requests.
+
+Interface art: **Pocket GUI** by **Vreyll** (window frames, buttons, icons, cursor, phone frame). Only the cropped pieces used by the game are included, not the original asset sheets.

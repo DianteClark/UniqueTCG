@@ -31,6 +31,7 @@
     const close = () => { veil.remove(); if (opts.onClose) opts.onClose(); };
     veil.addEventListener('click', e => { if (e.target === veil && !opts.locked) close(); });
     build(box, close);
+    if (!opts.locked) box.append(h('button', { class: 'iconbtn xbtn', 'aria-label': 'Close', onclick: close }, h('img', { src: 'assets/gui/ico-close.png', alt: '' })));
     veil.append(box); document.body.append(veil);
     return close;
   }
@@ -186,7 +187,7 @@
       h('div', { class: 'name' }, (mine ? '' : '') + p.name),
       h('div', { class: 'hpbar', 'data-k': 'c' + side }, h('i', { style: `width:${pct}%` }), h('b', null, Math.max(0, p.castle) + ' / ' + p.castleMax)),
       h('div', { class: 'row', style: 'gap:8px;margin-top:5px' }, crowns, info));
-    const bar = h('div', { class: 'side-bar' }, leader, who);
+    const bar = h('div', { class: 'side-bar' + (mine ? ' mine' : '') }, leader, who);
     if (mine) {
       const myTurn = s.active === B.me && s.winner == null && !B.busy;
       const ctr = h('div', { class: 'controls' });
@@ -517,7 +518,7 @@
   function topbar(title, back) {
     const p = P();
     return h('div', { class: 'topbar' },
-      back ? h('button', { onclick: back, 'aria-label': 'Back' }, '‹') : null,
+      back ? h('button', { class: 'iconbtn', onclick: back, 'aria-label': 'Back' }, h('img', { src: 'assets/gui/ico-left.png', alt: '' })) : null,
       h('div', { class: 'title' }, title),
       p ? h('span', { class: 'chip gold' }, p.gold + ' gold') : null,
       p ? h('span', { class: 'chip' }, p.packs + ' packs') : null);
@@ -534,7 +535,7 @@
       h('div', { class: 'row center', style: 'margin-top:18px' },
         p ? h('button', { class: 'primary big', onclick: menu }, 'Continue') : h('button', { class: 'primary big', onclick: pickKingdom }, 'New game'),
         h('button', { class: 'big', onclick: howTo }, 'How to play')),
-      h('p', { class: 'center muted', style: 'text-align:center;margin-top:20px' }, 'Art: Pixel Plebes by Devlyn JD'));
+      h('p', { class: 'center muted', style: 'text-align:center;margin-top:20px' }, 'Card art: Pixel Plebes by Devlyn JD · Interface: Pocket GUI by Vreyll'));
   }
   function pickKingdom() {
     let chosen = null; let name = 'Plebe';
@@ -586,7 +587,7 @@
       box.append(h('h2', null, titleText));
       if (extra) box.append(extra);
       if (!vs.length) box.append(h('p', null, 'You have no legal decks. Fix one in Decks.'));
-      vs.forEach(({ d, i }) => box.append(h('div', { class: 'dl', style: '--cw:34px;color:var(--cream);margin:6px 0', onclick: () => { close(); p.active = i; D.save(); cb(d); } }, cardEl(d.leader, 34), h('span', { class: 'n' }, d.name), i === p.active ? h('span', { class: 'q' }, 'last used') : null)));
+      vs.forEach(({ d, i }) => box.append(h('div', { class: 'dl pick', style: '--cw:34px;margin:6px 0', onclick: () => { close(); p.active = i; D.save(); cb(d); } }, cardEl(d.leader, 34), h('span', { class: 'n' }, d.name), i === p.active ? h('span', { class: 'q' }, 'last used') : null)));
       box.append(h('div', { class: 'row center' }, h('button', { onclick: close }, 'Cancel')));
     });
   }
@@ -745,7 +746,7 @@
         h('span', { class: 'chip ' + (d.cards.length === 30 ? 'gold' : '') }, d.cards.length + ' / 30')),
       h('div', { class: 'row' }, h('span', { class: 'px small' }, 'Leader'), ...leaders.map(L => h('div', { style: 'cursor:pointer;outline:' + (L === d.leader ? '3px solid var(--gold)' : 'none'), onclick: () => { d.leader = L; D.save(); editDeck(i, tab, f); } }, cardEl(L, 38)))),
       h('p', { class: 'small' }, 'Main suit: ' + K[E.def(d.leader).suit].suit + '. Add one ally suit (up to 10 cards)' + (E.def(d.leader).suit !== 'U' ? ' and up to 5 United cards' : '') + '. Max 3 of each troop, 1 of each hero/Joker version.'),
-      errs.length ? h('div', { class: 'errs' }, ...errs.slice(0, 4).map(e => h('div', null, '• ' + e))) : h('div', { style: 'color:var(--good)' }, '✓ Legal deck'));
+      errs.length ? h('div', { class: 'errs' }, ...errs.slice(0, 4).map(e => h('div', null, '• ' + e))) : h('div', { class: 'okline' }, h('img', { src: 'assets/gui/ico-check.png', alt: '' }), 'Legal deck'));
     const tabs = h('div', { class: 'tabs' }, h('button', { class: tab === 'deck' ? 'sel' : '', onclick: () => editDeck(i, 'deck', f) }, 'Deck (' + d.cards.length + ')'), h('button', { class: tab === 'add' ? 'sel' : '', onclick: () => editDeck(i, 'add', f) }, 'Add cards'));
     const body = h('div');
     if (tab === 'deck') {
@@ -840,7 +841,8 @@
       status.textContent = 'Opening a room…';
       Net.host(code => {
         body.innerHTML = '';
-        body.append(h('h2', null, 'Room code'), h('div', { class: 'code' }, code), h('p', { style: 'text-align:center' }, 'Send this code to your friend. Waiting for them to join…'),
+        body.append(h('h2', null, 'Room code'),
+          h('div', { class: 'phone' }, h('div', { class: 'pcode' }, code), h('div', { class: 'pbody' }, h('div', null, 'Text this code to your friend.'), h('div', { class: 'muted' }, 'Waiting for them to join…'))),
           h('div', { class: 'row center' }, h('button', { onclick: () => { navigator.clipboard && navigator.clipboard.writeText(code); toast('Copied'); } }, 'Copy code'), h('button', { onclick: () => { Net.close(); duel(); } }, 'Cancel')));
       }, msg => {
         if (msg.t === 'hello') {
@@ -897,6 +899,7 @@
     const p = P();
     screen(topbar('Credits', menu), h('div', { class: 'panel rules' },
       h('h2', null, 'Art'), h('p', null, 'Pixel Plebes animated digital playing cards by Devlyn JD (2018–2024), including the United Falls suit, Bloodless Hearts and the secret Classic deck. Used with credit as the artist requests.'),
+      h('h2', null, 'Interface'), h('p', null, 'Pocket GUI by Vreyll: window frames, buttons, icons, cursor and the phone frame.'),
       h('h2', null, 'Game'), h('p', null, 'Plebes: The Poker Trading Card Game. Rules, code and design built for this project.'),
       h('h2', null, 'Settings'),
       h('div', { class: 'row' }, h('span', null, 'Name'), h('input', { value: p.name, maxlength: 16, onchange: e => { p.name = e.target.value || 'Plebe'; D.save(); toast('Saved'); } })),

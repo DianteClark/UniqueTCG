@@ -216,3 +216,101 @@ table.hands tr.on td { background: var(--gold); }
   .controls button { font-size: .55rem; padding: 7px 7px 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .card .art.loop, .card.foil::after { animation: none; } }
+
+/* =====================================================================
+   Pocket GUI skin — UI art by Vreyll. Frames are 9-slice boxes drawn at 2x.
+   ===================================================================== */
+:root { --navy: #36325e; --gcream: #fffee6; --teal: #5fa3ab; --mint: #84dcb4; --pink: #ffaabb; --magenta: #cd5c8f; --peach: #fee4b9; }
+body { background-color: #262340; cursor: url(../assets/gui/cursor.png) 6 2, auto; }
+button, .tile, .kcard, .stage, .dl, .card, .slot.target, .handinfo, .iconbtn, .flip { cursor: url(../assets/gui/cursor.png) 6 2, pointer; }
+button:active, .tile:active { cursor: url(../assets/gui/cursor-press.png) 6 2, pointer; }
+
+.panel, .sheet, .side-bar, .tile, .kcard, .stage, .chip, button, .btn, .hn, .turnflag, .hpbar, .toast, .banner span, input, select, .decklist, .code {
+  border-style: solid; border-width: 8px; border-image-slice: 4 fill; border-image-width: 8px; border-image-repeat: stretch;
+  image-rendering: pixelated; box-shadow: none; background: transparent;
+}
+.panel, .sheet, .side-bar, .tile, .kcard, .stage, .decklist, input, select { border-image-source: url(../assets/gui/box-cream.png); color: var(--navy); }
+.panel { padding: 8px 10px; margin: 10px 4px; }
+.panel.dark { border-image-source: url(../assets/gui/box-dteal.png); color: var(--gcream); }
+.sheet { padding: 6px 10px 10px; margin: 8px; position: relative; animation: up .18s; }
+.sheet > h2:first-child { margin: -6px -10px 10px; padding: 7px 44px 5px 12px; background: var(--teal); color: var(--gcream); border-bottom: 2px solid var(--navy); font-size: 1rem; }
+.sheet .xbtn { position: absolute; top: -2px; right: -2px; }
+.iconbtn { border: 0; background: none; padding: 0; margin: 0; width: 32px; height: 32px; image-rendering: pixelated; box-shadow: none; }
+.iconbtn img { width: 32px; height: 32px; image-rendering: pixelated; display: block; }
+.iconbtn:active { transform: translateY(2px); }
+
+/* buttons */
+button, .btn { border-image-source: url(../assets/gui/box-cream.png); color: var(--navy); padding: 4px 8px 6px; margin: 3px; }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+button.primary { border-image-source: url(../assets/gui/box-yellow.png); box-shadow: none; }
+button.danger { border-image-source: url(../assets/gui/box-magenta.png); color: #fff; box-shadow: none; }
+button.ghost { border-image-source: url(../assets/gui/box-teal.png); color: var(--navy); box-shadow: none; }
+button.sel { border-image-source: url(../assets/gui/box-navy.png); color: var(--gold); }
+button.big { padding: 8px 14px 9px; }
+.controls button { padding: 3px 6px 5px; margin: 2px; }
+.tabs button { padding: 3px 7px 5px; margin: 2px; }
+.picker button { padding: 6px 0 7px; margin: 2px; }
+.suitbtn.sel.H, .suitbtn.sel.D, .suitbtn.sel.S, .suitbtn.sel.C, .suitbtn.sel.U { color: var(--gold); }
+
+/* chips & labels */
+.chip { border-image-source: url(../assets/gui/box-peach.png); color: var(--navy); padding: 1px 4px 3px; }
+.chip.gold { border-image-source: url(../assets/gui/box-yellow.png); color: var(--navy); }
+.topbar .title { color: var(--gcream); }
+.handinfo .hn { border-image-source: url(../assets/gui/box-yellow.png); color: var(--navy); padding: 0 4px 2px; box-shadow: none; }
+.handinfo .hn.none { border-image-source: url(../assets/gui/box-grey.png); }
+.midline .turnflag { border-image-source: url(../assets/gui/box-grey.png); color: var(--navy); padding: 0 6px 2px; background: none; }
+.midline .turnflag.mine { border-image-source: url(../assets/gui/box-mint.png); background: none; }
+.toast { border-image-source: url(../assets/gui/box-navy.png); color: var(--gcream); padding: 4px 10px 6px; box-shadow: none; }
+.banner span { border-image-source: url(../assets/gui/box-yellow.png); color: var(--navy); box-shadow: none; padding: 8px 18px 10px; }
+.banner.bad span { border-image-source: url(../assets/gui/box-magenta.png); color: #fff; background: none; }
+.banner.good span { border-image-source: url(../assets/gui/box-mint.png); color: var(--navy); background: none; }
+
+/* battle bars */
+.side-bar { padding: 2px 4px; }
+.side-bar .name { color: var(--navy); }
+.side-bar .res { color: var(--navy); }
+.hpbar { border-image-source: url(../assets/gui/box-navy.png); border-width: 4px; border-image-width: 4px; height: 20px; margin-top: 3px; }
+.hpbar i { background: #e2574c; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), inset 0 3px 0 rgba(255,255,255,.25); }
+.hpbar b { line-height: 12px; }
+.crown.off { background: #c5c3b6; }
+.slot { background: rgba(255,254,230,.04); box-shadow: inset 0 0 0 2px rgba(255,254,230,.10); border-radius: 3px; }
+
+/* menus */
+.tile { padding: 8px 8px 10px; }
+.tile .t { color: var(--teal); }
+.tile:hover { border-image-source: url(../assets/gui/box-peach.png); }
+.kcard { padding: 6px; }
+.kcard.chosen { border-image-source: url(../assets/gui/box-yellow.png); box-shadow: none; }
+.kcard .bar { background: #e6dfc6; height: 10px; border: 2px solid var(--navy); }
+.stage { padding: 4px 6px; box-shadow: none; }
+.stage.done { border-image-source: url(../assets/gui/box-mint.png); box-shadow: none; }
+.stage .chip { border-image-source: url(../assets/gui/box-teal.png); color: var(--gcream); }
+.decklist { padding: 2px 4px 6px; gap: 0; }
+.decklist .dl { background: none; color: var(--navy); border-bottom: 2px solid #ece3c3; padding: 3px 2px; }
+.decklist .dl:last-child { border-bottom: 0; }
+.decklist .dl .q { color: var(--teal); }
+.dl.pick { border-image-source: url(../assets/gui/box-cream.png); border-style: solid; border-width: 8px; border-image-slice: 4 fill; border-image-width: 8px; color: var(--navy) !important; background: none; }
+.errs { color: #cd5c8f; }
+.okline { display: flex; align-items: center; gap: 6px; color: var(--teal); }
+.okline img { width: 24px; height: 24px; image-rendering: pixelated; }
+input { padding: 2px 6px 4px; }
+.logo .big { text-shadow: 4px 4px 0 var(--magenta), 8px 8px 0 #15132a; color: var(--gcream); }
+.logo .sub { color: var(--mint); }
+.code { border-image-source: url(../assets/gui/box-navy.png); }
+.rules h3 { color: var(--teal); }
+table.hands td { border-bottom-color: #ece3c3; }
+table.hands tr.on td { background: var(--peach); }
+
+/* duel phone */
+.phone { width: 192px; height: 320px; margin: 6px auto 4px; position: relative; background: url(../assets/gui/phone.png) 0 0 / 192px 320px no-repeat; image-rendering: pixelated; }
+.phone .pcode { position: absolute; left: 20px; right: 20px; top: 46px; height: 24px; text-align: center; font: 400 1.3rem 'Silkscreen'; letter-spacing: .18em; color: var(--navy); }
+.phone .pbody { position: absolute; left: 22px; right: 22px; top: 86px; bottom: 34px; font-size: 1rem; color: var(--navy); text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.panel.dark .okline { color: var(--mint); }
+.panel.dark .errs { color: #ffd0dc; }
+.sheet .xbtn { top: -18px; right: -18px; }
+@media (max-width: 560px) {
+  .side-bar.mine { flex-wrap: wrap; }
+  .side-bar.mine .controls { width: 100%; justify-content: center; }
+}
+.sheet .xbtn { top: 0; right: 0; }
+.sheet .cardrow { padding-right: 26px; }
