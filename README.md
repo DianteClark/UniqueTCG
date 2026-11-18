@@ -7,6 +7,7 @@ A pixel-art trading card game built from a standard 52-card deck. Number cards a
 ## How it plays
 - **Goal:** destroy the enemy castle (30 health). Your Ace is your leader and has a once-per-game power.
 - **Crowns:** start at 1 and gain +1 each turn, up to 6. Cards 2–4 cost 1, 5–7 cost 2, 8–10 cost 3; Jack 3, Queen 4, King 5.
+- **Starting a match:** a coin toss decides who picks; the winner chooses to go first or second (second gets 1 bonus Coin). Both players may then swap up to 3 cards from their starting hand.
 - **Each turn:** draw 1, optionally **muck** (discard up to 2 and draw that many), play cards, then end your turn. Each troop attacks the card across from it, or the castle if the lane is empty. New troops are ready next turn.
 - **Health = the card's number.** Lower numbers hit harder for their cost.
 - **Board poker hands:** Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Royal Flush (instant win). Each gives a bonus.
@@ -36,6 +37,7 @@ js/engine.js        rules engine (pure, also runs in Node)
 js/ai.js            computer opponent
 js/data.js          profile, packs, campaign, draft (localStorage)
 js/net.js           peer-to-peer duels
+js/sfx.js           synthesized sound effects (no audio files)
 js/ui.js            screens and battle UI
 assets/             card sheets, animation strips, fonts, GUI pieces
 ```

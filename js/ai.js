@@ -94,7 +94,15 @@
   function nextAction(s, side, level) {
     level = level || 2;
     const p = s.players[side];
-    if (s.winner != null || s.active !== side) return null;
+    if (s.winner != null) return null;
+    if (s.phase === 'coin') return { type: 'choose', first: true };
+    if (s.phase === 'mulligan') {
+      // swap away expensive cards and extra copies of heroes
+      const idx = [];
+      p.hand.forEach((k, j) => { if (idx.length < 3 && E.def(k).cost >= 4) idx.push(j); });
+      return { type: 'mulligan', idx: level >= 2 ? idx : [] };
+    }
+    if (s.active !== side) return null;
     // 1) consider calling a bluff
     if (level >= 2 && E.canPay(p, 1)) {
       const op = s.players[1 - side];

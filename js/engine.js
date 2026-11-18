@@ -196,18 +196,39 @@
       };
       s.players.push(p);
     }
-    s.active = opts.first != null ? opts.first : (rnd(s) < 0.5 ? 0 : 1);
-    for (let i = 0; i < 2; i++) for (let k = 0; k < START_HAND; k++) draw(s, i, true);
-    s.players[1 - s.active].coins = 1; // second player compensation
     for (let i = 0; i < 2; i++) { // optional starting boards (boss twists)
       const o = opts.players[i];
       if (o.startBoard) o.startBoard.forEach((k, j) => { if (k) s.players[i].board[j] = makeUnit(s, i, k); });
-      if (o.startCoins) s.players[i].coins = o.startCoins;
+      if (o.startCoins) s.players[i].startCoins = o.startCoins;
       if (o.bonusAtk) s.players[i].bonusAtk = o.bonusAtk;
     }
+    // coin toss: the winner chooses to go first or second
+    s.phase = 'coin';
+    s.coinWinner = opts.coinWinner != null ? opts.coinWinner : (rnd(s) < 0.5 ? 0 : 1);
+    s.active = s.coinWinner;
+    s.mull = [false, false];
+    if (opts.first != null) chooseOrder(s, opts.first === s.coinWinner);
+    if (opts.noMulligan && s.phase === 'mulligan') { s.mull = [true, true]; beginPlay(s); }
+    return s;
+  }
+
+  function chooseOrder(s, winnerFirst) {
+    const w = s.coinWinner;
+    s.first = winnerFirst ? w : 1 - w;
+    for (let i = 0; i < 2; i++) for (let k = 0; k < START_HAND; k++) draw(s, i, true);
+    const second = s.players[1 - s.first];
+    second.coins = 1; // second player compensation
+    s.players.forEach(p => { if (p.startCoins) p.coins = Math.max(p.coins, p.startCoins); });
+    s.phase = 'mulligan';
+    s.active = s.first;
+    log(s, s.players[w].name + ' won the toss and chose to go ' + (winnerFirst ? 'first.' : 'second.'));
+    ev(s, { t: 'order', winner: w, first: s.first });
+  }
+  function beginPlay(s) {
+    s.phase = 'play';
+    s.active = s.first;
     s.firstTurn = true;
     startTurn(s);
-    return s;
   }
 
   function makeUnit(s, owner, key) {
@@ -458,6 +479,14 @@
   // returns error string or null
   function legal(s, side, a) {
     if (s.winner != null) return 'Game over.';
+    if (s.phase === 'coin') return a.type === 'choose' && side === s.coinWinner ? null : 'Waiting for the coin toss.';
+    if (s.phase === 'mulligan') {
+      if (a.type !== 'mulligan') return 'Finish your starting hand first.';
+      if (s.mull[side]) return 'Already kept your hand.';
+      if (!Array.isArray(a.idx) || a.idx.length > 3 || new Set(a.idx).size !== a.idx.length || a.idx.some(j => j < 0 || j >= s.players[side].hand.length)) return 'Swap up to 3 cards.';
+      return null;
+    }
+    if (a.type === 'choose' || a.type === 'mulligan') return 'Not now.';
     if (side !== s.active) return 'Not your turn.';
     const p = s.players[side];
     switch (a.type) {
@@ -490,6 +519,19 @@
     if (err) return err;
     const p = s.players[side];
     switch (a.type) {
+      case 'choose': chooseOrder(s, !!a.first); return null;
+      case 'mulligan': {
+        const idx = a.idx.slice().sort((x, y) => y - x);
+        const back = idx.map(j => p.hand.splice(j, 1)[0]);
+        p.deck.push(...back); shuffle(s, p.deck);
+        for (let k = 0; k < back.length; k++) p.hand.push(p.deck.pop());
+        s.mull[side] = true;
+        log(s, p.name + (back.length ? ' swapped ' + back.length + ' card' + (back.length > 1 ? 's.' : '.') : ' kept their hand.'));
+        ev(s, { t: 'mulligan', side, n: back.length });
+        if (s.mull[0] && s.mull[1]) beginPlay(s);
+        else s.active = s.mull[0] ? 1 : 0;
+        return null;
+      }
       case 'play': {
         const k = p.hand.splice(a.hand, 1)[0]; const d = def(k);
         const u = makeUnit(s, side, k);
@@ -620,7 +662,7 @@
   function redact(s, viewer) {
     const c = JSON.parse(JSON.stringify(s));
     const o = c.players[1 - viewer];
-    o.hand = o.hand.map(() => '?'); o.deck = o.deck.map(() => '?');
+    o.hand = o.hand.map(() => '?'); o.deck = o.deck.map(() => '?'); o.grave = o.grave.slice();
     c.players[viewer].deck = c.players[viewer].deck.map(() => '?');
     o.board.forEach(u => { if (u && u.hidden) u.key = '?'; });
     c.seed = 0;
