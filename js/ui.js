@@ -145,8 +145,9 @@
   const S = n => window.Sfx && Sfx.play(n);
 
   // card sizes that fit the whole battlefield on screen, no scrolling
+  const viewH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   function battleSizes() {
-    const W = Math.min(window.innerWidth, 720), H = window.innerHeight;
+    const W = Math.min(window.innerWidth, 720), H = viewH();
     const fixed = 300; // optimistic; render() shrinks until it fits
     const byH = (H - fixed) / 3 / 1.4;
     const byW = (W - 20) / 5 - 10;
@@ -160,10 +161,14 @@
     B = Object.assign({ busy: false, place: null, muck: null, queue: Promise.resolve(), overlay: null, lastHand: 0, ranks: [0, 0] }, opts);
     Object.assign(B, battleSizes());
     document.body.classList.add('inbattle');
+    window.scrollTo(0, 0);
     render();
     after();
   }
-  window.addEventListener('resize', () => { if (B && $('.battle')) { Object.assign(B, battleSizes()); B.fitGuard = 0; render(); } });
+  const refit = () => { if (B && $('.battle')) { window.scrollTo(0, 0); Object.assign(B, battleSizes()); B.fitGuard = 0; render(); } };
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', () => setTimeout(refit, 250));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
 
   // ---------- small pixel icons ----------
   // icons cropped from the card art: sword (card back), heart pip, crown (King of Diamonds)
@@ -178,7 +183,7 @@
 
   function render() {
     const s = B.s, me = B.me, op = 1 - me;
-    const root = h('div', { class: 'battle' + (window.innerHeight < 760 ? ' compact' : '') });
+    const root = h('div', { class: 'battle' + (viewH() < 760 ? ' compact' : '') });
     root.style.setProperty('--cw', B.cw + 'px');
     root.style.setProperty('--hcw', B.handCw + 'px');
     root.append(sideBar(op));
@@ -229,7 +234,7 @@
     const s = B.s, p = s.players[B.me];
     const myTurn = myTurnNow();
     const left = h('div', { class: 'mleft' }, h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Menu', onclick: menuSheet }, gico('app-scroll')),
-      window.innerHeight < 760 ? h('span', { class: 'turnflag mini' + (s.phase === 'play' && s.active === B.me && s.winner == null ? ' mine' : '') }, s.winner != null ? 'Over' : s.phase !== 'play' ? 'Setup' : s.active === B.me ? 'You' : 'Them') : null);
+      viewH() < 760 ? h('span', { class: 'turnflag mini' + (s.phase === 'play' && s.active === B.me && s.winner == null ? ' mine' : '') }, s.winner != null ? 'Over' : s.phase !== 'play' ? 'Setup' : s.active === B.me ? 'You' : 'Them') : null);
     let flagText = s.winner != null ? 'Game over' : s.phase !== 'play' ? 'Setting up' : s.active === B.me ? 'Your turn' : 'Their turn';
     const center = h('div', { class: 'mcenter' },
       h('div', { class: 'row center', style: 'gap:6px' }, h('span', { class: 'turnflag' + (s.phase === 'play' && s.active === B.me && s.winner == null ? ' mine' : '') }, flagText),

@@ -537,3 +537,11 @@ button:not(:disabled):hover { filter: brightness(1.05); }
 .counter { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; }
 .counter b { font: 400 .72rem 'Silkscreen'; color: var(--navy); }
 .battle.compact .counter b { font-size: .62rem; }
+
+/* battlefield pinned to the visible screen, respecting notches / home bars */
+body.inbattle { position: fixed; inset: 0; overflow: hidden; height: auto; }
+.battle { position: fixed; top: 0; bottom: 0; left: 0; right: 0; height: auto; width: 100%; max-width: 720px; margin: 0 auto;
+  padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom));
+  padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+#app { padding-top: max(10px, env(safe-area-inset-top)); }
+.veil { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
