@@ -5,14 +5,16 @@
   // ---------- constants ----------
   const SUITS = ['H', 'D', 'S', 'C', 'U'];
   const KINGDOMS = {
-    H: { name: 'Heartsbane', suit: 'Hearts', sym: '♥', color: '#d43c3c', trait: 'Blood Price', traitText: 'Pay 1 castle health: this troop gets +3 attack this turn.' },
-    D: { name: 'Portent Sound', suit: 'Diamonds', sym: '♦', color: '#3d82c4', trait: 'Tithe', traitText: 'When played face-up, gain 1 Coin (max 5). While you hold 2+ Coins, Diamonds troops get +1 attack. Coins pay for cards when Crowns run short.' },
-    S: { name: 'Mt. Falstaff', suit: 'Spades', sym: '♠', color: '#8a4aa6', trait: 'Buried', traitText: 'When destroyed, deal 2 damage to the enemy castle.' },
-    C: { name: 'Cyrus Glen', suit: 'Clubs', sym: '♣', color: '#2f9a58', trait: 'Grow', traitText: 'Gains +1 attack at the start of your next turn.' },
-    U: { name: 'United Falls', suit: 'United', sym: '✊', color: '#4a3f63', trait: 'United', traitText: '+1 attack while another United card is on your board, +2 with three or more.' }
+    H: { name: 'Heartsbane', suit: 'Hearts', sym: 'H', color: '#d43c3c', trait: 'Blood Price', traitText: 'Pay 1 castle health: this troop gets +3 attack this turn.' },
+    D: { name: 'Portent Sound', suit: 'Diamonds', sym: 'D', color: '#3d82c4', trait: 'Tithe', traitText: 'When played face-up, gain 1 Coin (max 5). While you hold 2+ Coins, Diamonds troops get +1 attack. Coins pay for cards when Crowns run short.' },
+    S: { name: 'Mt. Falstaff', suit: 'Spades', sym: 'S', color: '#8a4aa6', trait: 'Buried', traitText: 'When destroyed, deal 2 damage to the enemy castle.' },
+    C: { name: 'Cyrus Glen', suit: 'Clubs', sym: 'C', color: '#2f9a58', trait: 'Grow', traitText: 'Gains +1 attack at the start of your next turn.' },
+    U: { name: 'United Falls', suit: 'United', sym: 'U', color: '#4a3f63', trait: 'United', traitText: '+1 attack while another United card is on your board, +2 with three or more.' }
   };
   const RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
   const rankLabel = r => RANK_LABEL[r] || String(r);
+  const RANK_NAME = { 11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace' };
+  const cardName = (r, s) => (RANK_NAME[r] || String(r)) + ' of ' + KINGDOMS[s].suit;
   const MAX_CROWNS = 6, HAND_MAX = 7, START_HAND = 5, CASTLE = 30, BOARD = 5;
 
   const TROOP = { 2: [3, 2], 3: [2, 3], 4: [1, 4], 5: [3, 5], 6: [2, 6], 7: [1, 7], 8: [4, 8], 9: [3, 9], 10: [2, 10] };
@@ -191,7 +193,7 @@
       const p = {
         name: o.name || ('Player ' + (i + 1)), leader: o.leader, suit: L.suit,
         castle: (o.castle || L.castle), castleMax: (o.castle || L.castle),
-        crowns: 0, maxCrowns: 0, coins: 0, taxed: 0, powerUses: L.uses, deck: shuffle(s, o.deck.slice()), hand: [], grave: [],
+        crowns: 0, maxCrowns: 0, coins: 0, taxed: 0, powerUses: L.uses, deck: o.stack ? o.deck.slice() : shuffle(s, o.deck.slice()), hand: [], grave: [],
         board: [null, null, null, null, null], mucked: false, hiddenPlayed: false, solidUntil: -1, died: [], ai: o.ai || 0
       };
       s.players.push(p);
@@ -403,7 +405,7 @@
   }
 
   // ---------- abilities ----------
-  function runPlayAbility(s, i, slot, u) {
+  function runPlayAbility(s, i, slot, u, target) {
     const p = s.players[i], o = s.players[1 - i];
     const d = def(u.key);
     switch (d.abil) {
@@ -418,7 +420,8 @@
       case 'bribe': {
         const es = emptySlot(p); if (es < 0) break;
         let bj = -1, bc = -1;
-        o.board.forEach((x, j) => { if (x && !x.hidden && def(x.key).type === 'troop') { const c = def(x.key).cost; if (c <= p.coins && c > bc) { bc = c; bj = j; } } });
+        if (validTarget(s, i, 'bribe', target, u)) { bj = target; bc = def(o.board[target].key).cost; }
+        else o.board.forEach((x, j) => { if (x && !x.hidden && def(x.key).type === 'troop') { const c = def(x.key).cost; if (c <= p.coins && c > bc) { bc = c; bj = j; } } });
         if (bj >= 0) { const x = o.board[bj]; o.board[bj] = null; p.coins -= bc; x.owner = i; p.board[es] = x; ev(s, { t: 'steal', side: i, from: bj, to: es }); log(s, p.name + ' bribed ' + def(x.key).name + '.'); }
         break;
       }
@@ -426,7 +429,8 @@
       case 'tax': o.taxed += 1; break;
       case 'lastrites': {
         let bj = -1, ba = -1;
-        o.board.forEach((x, j) => { if (x && x.hp < x.maxHp) { const a = effAtk(s, 1 - i, j); if (a > ba) { ba = a; bj = j; } } });
+        if (validTarget(s, i, 'lastrites', target, u)) bj = target;
+        else o.board.forEach((x, j) => { if (x && x.hp < x.maxHp) { const a = effAtk(s, 1 - i, j); if (a > ba) { ba = a; bj = j; } } });
         if (bj >= 0) destroy(s, 1 - i, bj);
         break;
       }
@@ -438,7 +442,8 @@
       }
       case 'graft': {
         let bj = -1, bv = 1e9;
-        p.board.forEach((x, j) => { if (x && x !== u && !x.hidden && def(x.key).type === 'troop') { const v = x.atk + x.hp; if (v < bv) { bv = v; bj = j; } } });
+        if (validTarget(s, i, 'graft', target, u)) bj = target;
+        else p.board.forEach((x, j) => { if (x && x !== u && !x.hidden && def(x.key).type === 'troop') { const v = x.atk + x.hp; if (v < bv) { bv = v; bj = j; } } });
         if (bj >= 0) { const x = p.board[bj]; u.perm += x.atk + x.perm; u.maxHp += x.hp; u.hp += x.hp; p.board[bj] = null; p.grave.push(x.key); ev(s, { t: 'die', side: i, slot: bj }); }
         break;
       }
@@ -448,6 +453,19 @@
       case 'truth': revealAll(s, i, true); break;
     }
   }
+
+  // which slots a targeted ability may pick (null = no choice needed)
+  function targetsFor(s, i, abil, self) {
+    const p = s.players[i], o = s.players[1 - i];
+    const out = [];
+    if (abil === 'bribe') {
+      o.board.forEach((x, j) => { if (x && !x.hidden && def(x.key).type === 'troop' && def(x.key).cost <= p.coins) out.push(j); });
+    } else if (abil === 'lastrites') o.board.forEach((x, j) => { if (x && x.hp < x.maxHp) out.push(j); });
+    else if (abil === 'graft') p.board.forEach((x, j) => { if (x && x !== self && !x.hidden && def(x.key).type === 'troop') out.push(j); });
+    else if (abil === 'duelist') o.board.forEach((x, j) => { if (x) out.push(j); });
+    return out;
+  }
+  function validTarget(s, i, abil, t, self) { return t != null && targetsFor(s, i, abil, self).includes(t); }
 
   function revealAll(s, i, punish) {
     const o = s.players[1 - i];
@@ -469,10 +487,10 @@
     onEnter(s, side, slot, u);
   }
 
-  function onEnter(s, i, slot, u) {
+  function onEnter(s, i, slot, u, target) {
     const d = def(u.key); const p = s.players[i];
     if (d.type === 'troop' && d.suit === 'D') { p.coins = Math.min(5, p.coins + 1); ev(s, { t: 'abil', side: i, slot, name: 'Tithe' }); }
-    if (d.abilKind === 'play' || d.abil === 'truth') { ev(s, { t: 'abil', side: i, slot, name: d.abilityName }); runPlayAbility(s, i, slot, u); }
+    if (d.abilKind === 'play' || d.abil === 'truth') { ev(s, { t: 'abil', side: i, slot, name: d.abilityName }); runPlayAbility(s, i, slot, u, target); }
   }
 
   // ---------- actions ----------
@@ -509,6 +527,7 @@
       case 'reveal': { const u = p.board[a.slot]; if (!u || !u.hidden) return 'Not hidden.'; if (isLie(u)) return "You can't reveal a lie."; return null; }
       case 'blood': { const u = p.board[a.slot]; if (!u || u.hidden || def(u.key).type !== 'troop' || def(u.key).suit !== 'H') return 'Only Hearts troops can pay Blood Price.'; if (u.bp) return 'Already used this turn.'; if (p.castle <= 1) return 'Your castle is too weak.'; return null; }
       case 'power': if (p.powerUses <= 0) return 'Ace power already used.'; return null;
+      case 'aim': { const u = p.board[a.slot]; if (!u || !hasAbil(u, 'duelist')) return 'Only a Duelist can aim.'; if (!s.players[1 - side].board[a.target]) return 'Aim at an enemy.'; return null; }
       case 'end': return null;
     }
     return 'Unknown action.';
@@ -541,17 +560,18 @@
           const [at, hp] = TROOP[a.decl.rank]; u.atk = at; u.hp = u.maxHp = hp;
           p.board[a.slot] = u;
           ev(s, { t: 'play', side, slot: a.slot, hidden: true });
-          log(s, p.name + ' plays a hidden card, declaring ' + rankLabel(a.decl.rank) + KINGDOMS[a.decl.suit].sym + '.');
+          log(s, p.name + ' plays a hidden card, declaring the ' + cardName(a.decl.rank, a.decl.suit) + '.');
         } else {
           pay(p, d.cost);
           if (d.abil === 'wild') u.wild = { rank: a.decl.rank, suit: a.decl.suit };
           p.board[a.slot] = u;
           ev(s, { t: 'play', side, slot: a.slot });
-          log(s, p.name + ' plays ' + d.name + (u.wild ? ' as ' + rankLabel(u.wild.rank) + KINGDOMS[u.wild.suit].sym : '') + '.');
-          onEnter(s, side, a.slot, u);
+          log(s, p.name + ' plays ' + d.name + (u.wild ? ' as the ' + cardName(u.wild.rank, u.wild.suit) : '') + '.');
+          onEnter(s, side, a.slot, u, a.target);
         }
         break;
       }
+      case 'aim': { p.board[a.slot].aim = s.players[1 - side].board[a.target].uid; log(s, p.name + "'s Duelist takes aim."); break; }
       case 'muck': {
         const idx = a.idx.slice().sort((x, y) => y - x);
         idx.forEach(j => { if (p.hand[j]) p.grave.push(p.hand.splice(j, 1)[0]); });
@@ -633,7 +653,8 @@
       let target = lane, toCastle = false;
       if (hasAbil(u, 'tunnel')) toCastle = true;
       else if (hasAbil(u, 'duelist')) {
-        let bj = -1, bv = 1e9; o.board.forEach((x, j) => { if (x && x.hp < bv) { bv = x.hp; bj = j; } });
+        let bj = o.board.findIndex(x => x && u.aim && x.uid === u.aim), bv = 1e9;
+        if (bj < 0) o.board.forEach((x, j) => { if (x && x.hp < bv) { bv = x.hp; bj = j; } });
         if (bj >= 0) target = bj; else toCastle = true;
       } else if (!o.board[lane]) toCastle = true;
       ev(s, { t: 'attack', side: i, slot: lane, tslot: toCastle ? 'castle' : target });
@@ -672,7 +693,7 @@
   const clone = s => JSON.parse(JSON.stringify(s));
 
   const Engine = {
-    SUITS, KINGDOMS, HAND_NAMES, HAND_TEXT, FLUSH_TEXT, VARIANTS, ABIL, ACE_POWER, TROOP, HERO, MAX_CROWNS, BOARD,
+    SUITS, KINGDOMS, HAND_NAMES, HAND_TEXT, FLUSH_TEXT, VARIANTS, ABIL, ACE_POWER, TROOP, HERO, MAX_CROWNS, BOARD, targetsFor, cardName,
     rankLabel, troopCost, parseKey, def, variantsOf, withV, allKeys, validateDeck,
     newGame, legal, act, evalBoard, effAtk, isLie, unitRank, unitSuit, canPay, redact, clone, cardValue, rnd, shuffle
   };

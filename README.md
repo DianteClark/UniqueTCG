@@ -11,22 +11,28 @@ A pixel-art trading card game built from a standard 52-card deck. Number cards a
 - **Each turn:** draw 1, optionally **muck** (discard up to 2 and draw that many), play cards, then end your turn. Each troop attacks the card across from it, or the castle if the lane is empty. New troops are ready next turn.
 - **Health = the card's number.** Lower numbers hit harder for their cost.
 - **Board poker hands:** Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Royal Flush (instant win). Each gives a bonus.
+- **Targets:** Bribe, Last Rites and Graft pick their target when played; a Duelist can be aimed.
 - **Truth & Lies:** once per turn, play any card face-down and declare it as a number card. Your opponent can pay 1 Crown to call it. A lie is destroyed. If you told the truth, the caller takes 3. The TRUE Joker exposes every hidden enemy card. The FALSE Joker is wild and can never be called.
 
 ## Kingdoms
 | Kingdom | Suit | Trait |
 |---|---|---|
-| Heartsbane | ♥ | Blood Price: pay castle health for attack. Heroes return Bloodless. |
-| Portent Sound | ♦ | Tithe: Coins, bribes and taxes. |
-| Mt. Falstaff | ♠ | Buried: hurts the enemy castle when destroyed. |
-| Cyrus Glen | ♣ | Grow: bigger every turn. |
-| United Falls | ✊ | United: stronger together. Unlocked by finishing the campaign. |
+| Heartsbane | Hearts | Blood Price: pay castle health for attack. Heroes return Bloodless. |
+| Portent Sound | Diamonds | Tithe: Coins, bribes and taxes. |
+| Mt. Falstaff | Spades | Buried: hurts the enemy castle when destroyed. |
+| Cyrus Glen | Clubs | Grow: bigger every turn. |
+| United Falls | United (fist) | United: stronger together. Unlocked by finishing the campaign. |
 
 ## Modes
 - **Campaign:** 7 stages per kingdom (troop ranks, Jack, Queen, King, Ace boss with a twist). Clear all four to unlock United Falls. Hard mode after that.
 - **Skirmish:** quick games against the computer at three difficulty levels.
 - **Draft:** pick a leader and 12 cards, then play until 3 wins or 2 losses for packs.
 - **Duel:** play a friend by 6-letter invite code, browser to browser (WebRTC via PeerJS). Add `?local` to the URL to test with two tabs in one browser.
+- **Tutorial:** a guided first match that teaches playing cards, combat, poker hands, calling bluffs and Ace powers.
+- **Bosses:** every campaign Jack, Queen, King and Ace has a name, lines of dialogue and a signature Animated card.
+- **Daily quests:** three new quests each day, tracked in every mode.
+- **Crafting & deck codes:** craft any card with gold; share and import decks with `PLB1.` codes.
+- **Install:** add it to your home screen; it works offline after the first visit (manifest + service worker).
 - **Packs & collection:** 5-card packs with Origin, Classic and Animated hero/Ace/Joker versions and cosmetic foils. Max 3 of each troop, 1 of each hero/Joker version per deck.
 
 ## Project layout

@@ -1,0 +1,16 @@
+{
+  "name": "Plebes — The Poker Trading Card Game",
+  "short_name": "Plebes",
+  "description": "A pixel-art trading card game built from a 52-card deck: poker-hand bonuses, bluffing, five kingdoms, packs, a campaign and duels.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#262340",
+  "theme_color": "#262340",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -42,8 +42,10 @@
     const f = h('div', { class: 'float ' + (cls || ''), style: `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px` }, text);
     document.body.append(f); setTimeout(() => f.remove(), 950);
   }
-  const sym = s => K[s].sym;
-  const lbl = (r, s) => E.rankLabel(r) + sym(s);
+  // suit pips cropped from the card art (no emoji / font symbols)
+  const sym = s => h('img', { class: 'pip', src: 'assets/gui/pip-' + s + '.png', alt: K[s].suit });
+  const lbl = (r, s, tail) => h('span', { class: 'lbl' }, E.rankLabel(r), sym(s), tail || null);
+  const gico = (name, cls) => h('img', { class: 'gico ' + (cls || ''), src: 'assets/gui/' + name + '.png', alt: '' });
 
   // ---------- card art ----------
   const SHEET = { b: 'assets/base.png', o: 'assets/origin.png', c: 'assets/classic.png', u: 'assets/u004.png' };
@@ -97,7 +99,7 @@
     if (o.count != null) el.append(h('div', { class: 'badge count' }, o.count));
     if (o.tag) el.append(h('div', { class: 'tag ' + (o.tagCls || '') }, o.tag));
     if (o.vtag) el.append(h('div', { class: 'vtag' }, o.vtag));
-    if (o.zz) { el.append(h('div', { class: 'zz', title: 'Ready next turn' }, '💤')); el.classList.add('sleepy'); }
+    if (o.zz) { el.append(h('div', { class: 'zz', title: 'Ready next turn' }, 'REST')); el.classList.add('sleepy'); }
     if (o.onclick) el.addEventListener('click', o.onclick);
     return el;
   }
@@ -133,7 +135,7 @@
     return t;
   }
   function flushTable() {
-    return h('p', null, 'Flush bonuses: ', ...E.SUITS.map(s => h('span', null, sym(s) + ' ' + E.FLUSH_TEXT[s] + '  ')));
+    return h('div', { class: 'flushes' }, h('b', null, 'Flush bonuses'), ...E.SUITS.map(s => h('div', null, sym(s), ' ' + K[s].suit + ': ' + E.FLUSH_TEXT[s])));
   }
 
   // =====================================================
@@ -164,11 +166,8 @@
   window.addEventListener('resize', () => { if (B && $('.battle')) { Object.assign(B, battleSizes()); B.fitGuard = 0; render(); } });
 
   // ---------- small pixel icons ----------
-  const ICON = {
-    atk: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23fffee6' d='M6 0h2v2h-1v1h-1v1h-1v1h1v1h-1v1h-1v-1h-1v1h-1v1h-1v-1h-1v-1h1v-1h1v-1h-1v-1h1v1h1v-1h1v-1h1v-1h1z'/%3E%3C/svg%3E",
-    hp: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23fffee6' d='M1 1h2v1h2v-1h2v1h1v3h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-3h1z'/%3E%3C/svg%3E",
-    crown: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%2336325e' d='M0 1h1v1h1v1h1v-2h2v2h1v-1h1v-1h1v6h-8z'/%3E%3C/svg%3E"
-  };
+  // icons cropped from the card art: sword (card back), heart pip, crown (King of Diamonds)
+  const ICON = { atk: 'assets/gui/ico-sword.png', hp: 'assets/gui/pip-H.png', crown: 'assets/gui/ico-crown.png' };
   const ico = (k, cls) => h('img', { class: 'pico ' + (cls || ''), src: ICON[k], alt: '' });
   function statStrip(atk, hp, o) {
     o = o || {};
@@ -210,8 +209,8 @@
     if (mine && p.powerUses > 0 && myTurnNow()) leader.classList.add('ready');
     const pct = Math.max(0, p.castle) / p.castleMax * 100;
     const crowns = h('div', { class: 'res' });
-    for (let i = 0; i < Math.max(p.maxCrowns, p.crowns); i++) crowns.append(h('i', { class: 'crown' + (i < p.crowns ? '' : ' off') }));
-    for (let i = 0; i < p.coins; i++) crowns.append(h('i', { class: 'coin', title: 'Coin' }));
+    for (let i = 0; i < Math.max(p.maxCrowns, p.crowns); i++) crowns.append(h('img', { class: 'crowni' + (i < p.crowns ? '' : ' off'), src: 'assets/gui/ico-crown.png', alt: '' }));
+    for (let i = 0; i < p.coins; i++) crowns.append(h('img', { class: 'coini', src: 'assets/gui/ico-coin.png', alt: 'Coin' }));
     const who = h('div', { class: 'who' },
       h('div', { class: 'name' }, p.name),
       h('div', { class: 'hpbar' + (p.castle <= 8 ? ' low' : ''), 'data-k': 'c' + side }, h('i', { style: `width:${pct}%` }), h('b', null, Math.max(0, p.castle) + ' / ' + p.castleMax)),
@@ -229,7 +228,7 @@
   function midStrip() {
     const s = B.s, p = s.players[B.me];
     const myTurn = myTurnNow();
-    const left = h('div', { class: 'mleft' }, h('button', { class: 'ghost menu-btn', 'aria-label': 'Menu', onclick: menuSheet }, '≡'),
+    const left = h('div', { class: 'mleft' }, h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Menu', onclick: menuSheet }, gico('app-scroll')),
       window.innerHeight < 760 ? h('span', { class: 'turnflag mini' + (s.phase === 'play' && s.active === B.me && s.winner == null ? ' mine' : '') }, s.winner != null ? 'Over' : s.phase !== 'play' ? 'Setup' : s.active === B.me ? 'You' : 'Them') : null);
     let flagText = s.winner != null ? 'Game over' : s.phase !== 'play' ? 'Setting up' : s.active === B.me ? 'Your turn' : 'Their turn';
     const center = h('div', { class: 'mcenter' },
@@ -237,7 +236,12 @@
         s.phase === 'play' ? h('span', { class: 'round' }, 'Round ' + Math.ceil(s.turn / 2)) : null),
       h('div', { class: 'last' }, (s.log.filter(l => !l.startsWith('—')).slice(-1)[0]) || ''));
     const right = h('div', { class: 'mright' });
-    if (B.place) {
+    const tip = coachText();
+    if (tip) center.append(h('div', { class: 'coach' }, h('img', { class: 'gico', src: 'assets/gui/app-scroll.png', alt: '' }), h('span', null, tip)));
+    if (B.target) {
+      center.querySelector('.last').textContent = B.target.hint;
+      right.append(h('button', { onclick: () => { B.target = null; render(); } }, 'Cancel'));
+    } else if (B.place) {
       center.querySelector('.last').textContent = 'Tap a glowing slot to place your card';
       right.append(h('button', { onclick: () => { B.place = null; render(); } }, 'Cancel'));
     } else if (B.muck) {
@@ -272,18 +276,20 @@
         let key = u.key, tag = null, tagCls = '';
         if (u.hidden) {
           key = p.suit === 'U' ? 'backU' : 'back';
-          tag = lbl(u.decl.rank, u.decl.suit) + (mine ? '' : '?');
+          tag = lbl(u.decl.rank, u.decl.suit, mine ? '' : '?');
           if (mine && u.key !== '?') tagCls = E.isLie(u) ? 'lie' : 'truth';
-        } else if (u.wild) tag = '=' + lbl(u.wild.rank, u.wild.suit);
+        } else if (u.wild) tag = lbl(u.wild.rank, u.wild.suit);
         const atk = E.effAtk(s, side, j, hd);
-        const c = cardEl(key, cw, { tag, tagCls, zz: s.active === side && u.born >= s.turn, onclick: (e) => { e.stopPropagation(); unitSheet(side, j); } });
+        const isTgt = B.target && B.target.side === side && B.target.cands.includes(j);
+        const c = cardEl(key, cw, { tag, tagCls, zz: s.active === side && u.born >= s.turn, onclick: (e) => { e.stopPropagation(); if (isTgt) pickTarget(j); else if (!B.target) unitSheet(side, j); } });
+        if (isTgt) slot.classList.add('tgt');
         if (hd.rank && hd.slots.includes(j)) c.classList.add('inhand-glow');
         slot.append(c);
         cell.append(slot, statStrip(atk, u.hp, { atkUp: atk > u.atk, hurt: u.hp < u.maxHp }));
       } else {
         if (B.place && side === B.me) {
           slot.classList.add('target');
-          slot.addEventListener('click', () => { const pl = B.place; B.place = null; doAct({ type: 'play', hand: pl.hand, slot: j, faceDown: pl.faceDown, decl: pl.decl }); });
+          slot.addEventListener('click', () => placeAt(j));
         }
         cell.append(slot, h('div', { class: 'stat empty' }));
       }
@@ -319,6 +325,50 @@
     B.lastHand = n;
     if (!n) row.append(h('div', { class: 'muted px small', style: 'align-self:center' }, s.phase === 'coin' ? '' : 'No cards in hand'));
     return row;
+  }
+
+  // ----- tutorial coach -----
+  function coachText() {
+    const s = B.s;
+    if (!B.tutorial || s.phase !== 'play' || s.winner != null) return null;
+    const me = B.me, p = s.players[me], o = s.players[1 - me];
+    if (s.active !== me) return 'Their turn. Their troops attack at the end of it.';
+    const t = Math.ceil(s.turn / 2);
+    const placed = p.board.some(u => u && u.born === s.turn);
+    const hd = E.evalBoard(s, me).rank;
+    if (t === 1) return placed ? 'New troops REST the turn they arrive. Tap End turn.' : 'Welcome! Tap the glowing 3 of Hearts, choose Play, then tap a glowing slot.';
+    if (t === 2) return placed ? 'Tap End turn. Your troops attack the card across from them, or the castle if the lane is empty.' : 'You gain a Crown every turn (top of your bar). Play a 5 of Hearts.';
+    if (t === 3) return hd >= 1 ? 'Pair! Matching ranks make poker hands. Tap the yellow label to see every bonus, then End turn.' : 'Play your other 5 of Hearts to make a Pair. Paired troops get +1 attack.';
+    if (t === 4) return o.board.some(u => u && u.hidden) ? 'They played a card face-down and claim it is the 9 of Spades. Tap it and Call bluff (1 Crown). A lie is destroyed.' : 'Caught! You can bluff too: tap a card and choose Play face-down. Then End turn.';
+    if (t === 5) return p.powerUses > 0 ? 'Your Ace has a once-per-game power. Tap Power to Rally (heal 8), now or later.' : 'You know the basics. Knock their castle down!';
+    if (t === 6) return 'You know the basics. Knock their castle down!';
+    return null;
+  }
+  function say(text) {
+    if (!text) return;
+    const old = $('.speech'); if (old) old.remove();
+    const bar = $('.side-bar:not(.mine)'); if (!bar) return;
+    const r = bar.getBoundingClientRect();
+    const b = h('div', { class: 'speech', style: `left:${Math.max(8, r.left + 40)}px;top:${r.bottom + 10}px;max-width:${Math.min(320, r.width - 70)}px` }, h('b', null, B.boss ? B.boss.name : ''), text);
+    document.body.append(b); setTimeout(() => b.remove(), 3800);
+  }
+
+  const TARGET_HINT = { bribe: 'Bribe: tap an enemy troop to steal', lastrites: 'Last Rites: tap a damaged enemy to destroy', graft: 'Graft: tap one of your troops to absorb', duelist: 'Aim: tap the enemy your Duelist should attack' };
+  function placeAt(j) {
+    const pl = B.place; B.place = null;
+    const p = B.s.players[B.me];
+    const d = E.def(p.hand[pl.hand]);
+    const play = { type: 'play', hand: pl.hand, slot: j, faceDown: pl.faceDown, decl: pl.decl };
+    if (!pl.faceDown && ['bribe', 'lastrites', 'graft'].includes(d.abil)) {
+      const cands = E.targetsFor(B.s, B.me, d.abil, null);
+      if (cands.length) { B.target = { play, side: d.abil === 'graft' ? B.me : 1 - B.me, cands, hint: TARGET_HINT[d.abil] }; S('click'); render(); return; }
+    }
+    doAct(play);
+  }
+  function pickTarget(j) {
+    const t = B.target; B.target = null;
+    if (t.aim != null) doAct({ type: 'aim', slot: t.aim, target: j });
+    else doAct(Object.assign({}, t.play, { target: j }));
   }
 
   function tapHand(i) {
@@ -366,7 +416,7 @@
         const cost = wild ? d.cost : E.troopCost(rank);
         const p = B.s.players[B.me];
         const lie = !wild && !(d.type === 'troop' && d.rank === rank && d.suit === suit);
-        box.append(h('p', { class: 'px decl' }, 'Declaring ' + lbl(rank, suit) + ' · Cost ' + cost + (wild ? '' : lie ? ' · LIE' : ' · TRUTH')));
+        box.append(h('p', { class: 'px decl' }, 'Declaring ', lbl(rank, suit), ' · Cost ' + cost + (wild ? '' : lie ? ' · LIE' : ' · TRUTH')));
         box.append(h('div', { class: 'row center' },
           h('button', { class: 'primary big', disabled: !E.canPay(p, cost), onclick: () => { close(); done({ rank, suit }); } }, 'Choose slot'),
           h('button', { class: 'big', onclick: close }, 'Cancel')));
@@ -384,15 +434,21 @@
       const showKey = u.hidden && (!mine || u.key === '?') ? (s.players[side].suit === 'U' ? 'backU' : 'back') : u.key;
       const right = h('div', { class: 'grow' });
       if (u.hidden) {
-        right.append(h('h2', null, mine ? 'Your hidden card' : 'Hidden card'), h('p', null, 'Declared as ' + lbl(u.decl.rank, u.decl.suit) + '. It fights as that card and counts as it for poker hands.'));
+        right.append(h('h2', null, mine ? 'Your hidden card' : 'Hidden card'), h('p', null, 'Declared as ', lbl(u.decl.rank, u.decl.suit), '. It fights as that card and counts as it for poker hands.'));
         if (mine && u.key !== '?') right.append(h('p', null, 'Really: ', h('b', null, E.def(u.key).name), E.isLie(u) ? ' — a lie.' : ' — the truth.'));
       } else right.append(cardInfo(u.key));
-      if (u.wild) right.append(h('p', null, 'Counts as ' + lbl(u.wild.rank, u.wild.suit) + '.'));
+      if (u.wild) right.append(h('p', null, 'Counts as ', lbl(u.wild.rank, u.wild.suit), '.'));
       right.append(h('div', { class: 'stats' }, h('span', null, 'ATK ' + E.effAtk(s, side, j)), h('span', null, 'HP ' + u.hp + '/' + u.maxHp),
         s.active === side && u.born >= s.turn ? h('span', null, 'Ready next turn') : null));
       const acts = h('div', { class: 'acts' });
       if (myTurn && !mine && u.hidden) acts.append(h('button', { class: 'danger big', disabled: !E.canPay(p, 1), onclick: () => { close(); doAct({ type: 'call', slot: j }); } }, 'Call bluff · 1 Crown'));
       if (myTurn && mine && u.hidden && u.key !== '?' && !E.isLie(u)) acts.append(h('button', { class: 'primary big', onclick: () => { close(); doAct({ type: 'reveal', slot: j }); } }, 'Reveal (truth)'));
+      if (myTurn && mine && !u.hidden && E.def(u.key).abil === 'duelist') {
+        const cands = E.targetsFor(s, B.me, 'duelist', u);
+        acts.append(h('button', { class: 'primary big', disabled: !cands.length, onclick: () => { close(); B.target = { aim: j, side: 1 - B.me, cands, hint: TARGET_HINT.duelist }; render(); } }, 'Aim attack'));
+        const aimed = s.players[1 - B.me].board.find(x => x && x.uid === u.aim);
+        acts.append(h('p', { class: 'small muted' }, aimed ? 'Aimed at ' + (aimed.hidden ? 'a hidden card' : E.def(aimed.key).name) + '.' : 'Not aimed: attacks the weakest enemy.'));
+      }
       if (myTurn && mine && !u.hidden && E.def(u.key).type === 'troop' && E.def(u.key).suit === 'H') acts.append(h('button', { class: 'danger big', disabled: u.bp || p.castle <= 1, onclick: () => { close(); doAct({ type: 'blood', slot: j }); } }, 'Blood Price'));
       right.append(acts);
       box.append(h('div', { class: 'cardrow' }, cardEl(showKey, 140), right));
@@ -508,6 +564,7 @@
     runAct(B.me, a);
   }
   function runAct(side, a) {
+    if (side === B.me) B.target = null;
     B.queue = B.queue.then(async () => {
       const pre = E.clone(B.s);
       const err = E.act(B.s, side, a);
@@ -545,6 +602,7 @@
     for (const side of [B.me, 1 - B.me]) {
       const r = E.evalBoard(B.s, side).rank;
       if (r > B.ranks[side] && r > 0) {
+        if (side === B.me) { if (r >= 3) D.questBump('hand3'); if (r >= 5) D.questBump('hand5'); }
         const el = $(`.board.${side === B.me ? 'mine' : 'theirs'}`);
         if (el) { el.classList.remove('combo'); void el.offsetWidth; el.classList.add('combo'); }
         callout(el, E.HAND_NAMES[r] + '!');
@@ -572,8 +630,17 @@
   const SUITCOL = { H: '#d43c3c', D: '#3d82c4', S: '#8a4aa6', C: '#2f9a58', U: '#e0a43a' };
 
   const slotEl = (side, slot) => $(`[data-k="s${side}-${slot}"]`);
+  function track(e) {
+    const me = B.me, op = 1 - me, Q = D.questBump;
+    if (e.t === 'play' && e.side === me) { Q('play'); if (e.hidden) Q('bluff'); }
+    else if (e.t === 'die' && e.side === op) Q('kill');
+    else if (e.t === 'dmg' && e.slot === 'castle' && e.side === op) Q('castle', e.n);
+    else if (e.t === 'power' && e.side === me) Q('power');
+    else if (e.t === 'lie' && e.side === op) Q('catch');
+  }
   async function playEvents(evs) {
     for (const e of evs) {
+      track(e);
       switch (e.t) {
         case 'play': { const el = slotEl(e.side, e.slot); const c = el && el.querySelector('.card'); if (c) { c.classList.add('slam'); } S('play'); burst(el, '#fffee6', 8); await sleep(e.side === B.me ? 120 : 260); break; }
         case 'attack': {
@@ -634,6 +701,9 @@
       return;
     }
     closeOverlay();
+    if (B.boss && !B.saidIntro) { B.saidIntro = true; setTimeout(() => B && say(B.boss.intro), 300); }
+    const opp = s.players[1 - B.me];
+    if (B.boss && !B.saidHurt && opp.castle <= opp.castleMax / 2) { B.saidHurt = true; say(B.boss.hurt); }
     if (B.mode === 'ai' && s.active !== B.me) aiLoop();
   }
   function aiShouldAct(side) {
@@ -652,7 +722,7 @@
     if (!setup) { B.busy = true; render(); await sleep(450); }
     let n = 0;
     while (B && aiShouldAct(side)) {
-      let a = n++ > 30 ? { type: 'end' } : AI.nextAction(B.s, side, B.level);
+      let a = n++ > 30 ? { type: 'end' } : (scriptedAction(side) || AI.nextAction(B.s, side, B.level));
       if (!a || E.legal(B.s, side, a)) a = { type: 'end' };
       const pre = E.clone(B.s);
       if (E.act(B.s, side, a)) break;
@@ -664,6 +734,22 @@
     if (!B) return;
     B.aiRunning = false; B.busy = false; render();
     after();
+  }
+
+  // tutorial opponent follows a script on its first turns
+  function scriptedAction(side) {
+    const s = B.s;
+    if (!B.script || s.phase !== 'play') return null;
+    if (B.lastAiTurn !== s.turn) { B.lastAiTurn = s.turn; B.oppTurn = (B.oppTurn || 0) + 1; B.sq = B.script[B.oppTurn] ? B.script[B.oppTurn].slice() : null; }
+    if (!B.sq) return null;
+    const step = B.sq.shift();
+    if (!step) return { type: 'end' };
+    const p = s.players[side];
+    const hand = p.hand.indexOf(step[1]);
+    let slot = step[2]; if (p.board[slot]) slot = p.board.findIndex(x => !x);
+    if (hand < 0 || slot < 0) return { type: 'end' };
+    if (step[0] === 'bluff') return { type: 'play', hand, slot, faceDown: true, decl: { rank: step[3], suit: step[4] } };
+    return { type: 'play', hand, slot };
   }
 
   function confetti() {
@@ -678,6 +764,7 @@
     if (!B || B.done) return;
     B.done = true; B.busy = false; render();
     const won = B.s.winner === B.me;
+    if (won) { D.questBump('win'); if (B.mode === 'host' || B.mode === 'guest') D.questBump('duelwin'); }
     setTimeout(() => {
       const res = B.onEnd ? B.onEnd(won) : null;
       banner(won ? 'VICTORY' : 'DEFEAT', won ? 'good' : 'bad');
@@ -685,8 +772,12 @@
       setTimeout(() => sheet((box, close) => {
         box.append(h('h2', null, won ? 'Victory!' : 'Defeat'));
         box.append(h('div', { class: 'result' }, cardEl(B.s.players[won ? B.me : 1 - B.me].leader, 90)));
+        if (B.boss) box.append(h('p', { class: 'quote' }, h('b', null, B.boss.name + ': '), '"' + (won ? B.boss.lose : B.boss.win) + '"'));
         if (res && res.lines) res.lines.forEach(l => box.append(h('p', { style: 'text-align:center' }, l)));
-        box.append(h('div', { class: 'row center' }, h('button', { class: 'primary big', onclick: () => { close(); const ex = B.exit; document.body.classList.remove('inbattle'); B = null; ex(res); } }, 'Continue')));
+        const leave = fn => { close(); document.body.classList.remove('inbattle'); const f = fn; B = null; f(res); };
+        box.append(h('div', { class: 'row center' },
+          B.rematch ? h('button', { class: 'big', onclick: () => leave(B.rematch) }, 'Rematch') : null,
+          h('button', { class: 'primary big', onclick: () => leave(B.exit) }, 'Continue')));
       }, { mid: true, locked: true }), 1100);
     }, 400);
   }
@@ -744,7 +835,7 @@
     const draw = () => {
       grid.innerHTML = '';
       ['H', 'D', 'S', 'C'].forEach(s => grid.append(h('div', { class: 'kcard' + (chosen === s ? ' chosen' : ''), onclick: () => { chosen = s; draw(); } },
-        cardEl(s + 'A', 72), h('div', null, h('div', { class: 'kname', style: `color:var(--${s})` }, K[s].name), h('div', { class: 'small' }, K[s].suit + ' ' + K[s].sym), h('p', null, blurbs[s]), h('p', { class: 'small muted' }, K[s].trait + ': ' + K[s].traitText)))));
+        cardEl(s + 'A', 72), h('div', null, h('div', { class: 'kname', style: `color:var(--${s})` }, K[s].name), h('div', { class: 'small' }, sym(s), ' ' + K[s].suit), h('p', null, blurbs[s]), h('p', { class: 'small muted' }, K[s].trait + ': ' + K[s].traitText)))));
     };
     draw();
     const input = h('input', { value: name, maxlength: 16, oninput: e => { name = e.target.value; } });
@@ -752,25 +843,45 @@
       h('p', { style: 'padding:0 8px' }, 'Your first kingdom gives you its Ace (your leader and castle) and a 30-card starter deck. Win the campaign to unlock the others.'),
       grid,
       h('div', { class: 'row center' }, h('span', { class: 'px small' }, 'Your name'), input),
-      h('div', { class: 'row center' }, h('button', { class: 'primary big', onclick: () => { if (!chosen) return toast('Pick a kingdom'); D.start(chosen, name.trim() || 'Plebe'); menu(); toast('Welcome to ' + K[chosen].name + '! You have 1 free pack.'); } }, 'Begin')));
+      h('div', { class: 'row center' }, h('button', { class: 'primary big', onclick: () => { if (!chosen) return toast('Pick a kingdom'); D.start(chosen, name.trim() || 'Plebe'); menu();
+          sheet((box, close) => { box.append(h('h2', null, 'Welcome to ' + K[chosen].name), h('p', null, 'New to Plebes? A guided 5-minute match teaches the basics: playing cards, combat, poker hands and calling bluffs.'), h('p', { class: 'small muted' }, 'Reward: 1 pack and 50 gold. You also have 1 free pack waiting.'),
+            h('div', { class: 'acts' }, h('button', { class: 'primary big', onclick: () => { close(); tutorial(); } }, 'Play the tutorial'), h('button', { class: 'big', onclick: close }, 'Skip for now'))); }, { mid: true }); } }, 'Begin')));
   }
 
   // ----- main menu -----
   function menu() {
     const p = P();
-    const tile = (t, sub, key, fn) => h('button', { class: 'tile', onclick: fn }, cardEl(key, 34, { cls: 'ico' }), h('div', null, h('span', { class: 't' }, t), sub));
+    const icon = key => key.startsWith('gui:') ? gico(key.slice(4), 'tico') : cardEl(key, 40, { cls: 'ico' });
+    const tile = (t, sub, key, fn, badge) => h('button', { class: 'tile', onclick: fn }, icon(key), h('div', null, h('span', { class: 't' }, t), sub), badge ? h('span', { class: 'badge-new' }, badge) : null);
+    const ready = D.questsReady();
     screen(topbar('Hello, ' + p.name),
       h('div', { class: 'menu' },
         tile('Campaign', 'Conquer the five kingdoms', 'HA', campaign),
         tile('Skirmish', 'Quick match vs the computer', 'S11', skirmish),
         tile('Duel', 'Play a friend by invite code', 'JT', duel),
         tile('Draft', 'Pick cards, play for packs', 'JF', draft),
-        tile('Packs', p.packs + ' to open · shop', 'back', shop),
-        tile('Decks', 'Build and edit decks', 'D12', decks),
-        tile('Collection', Object.keys(p.coll).length + ' cards owned', 'C13', collection),
+        tile('Quests', ready ? ready + ' reward' + (ready > 1 ? 's' : '') + ' ready' : 'New quests every day', 'gui:app-scroll', questsScreen, ready || null),
+        tile('Packs', p.packs + ' to open · shop', 'back', shop, p.packs || null),
+        tile('Decks', 'Build, share and import', 'D12', decks),
+        tile('Collection', Object.keys(p.coll).length + ' owned · craft cards', 'C13', collection),
+        tile('Tutorial', p.tutorial ? 'Replay the guided match' : 'Learn in 5 minutes', 'gui:app-heart', tutorial),
         tile('How to play', 'Rules and poker bonuses', 'H2', howTo),
-        tile('Credits', 'Art, settings', 'U13', credits)),
+        tile('Credits', 'Art, sound, settings', 'gui:app-key', credits)),
       h('p', { class: 'muted', style: 'text-align:center' }, 'Record: ' + p.wins + 'W – ' + p.losses + 'L'));
+  }
+
+  // ----- quests -----
+  function questsScreen() {
+    const list = h('div', { class: 'quests' });
+    D.quests().forEach(q => {
+      const done = q.n >= q.goal;
+      list.append(h('div', { class: 'panel quest' + (q.claimed ? ' claimed' : '') },
+        h('div', { class: 'qt' }, q.text),
+        h('div', { class: 'qbar' }, h('i', { style: `width:${q.n / q.goal * 100}%` }), h('b', null, q.n + ' / ' + q.goal)),
+        h('div', { class: 'row' }, h('span', { class: 'grow small' }, 'Reward: ' + (q.gold ? q.gold + ' gold' : q.pack + ' pack')),
+          q.claimed ? h('span', { class: 'chip' }, 'Claimed') : h('button', { class: done ? 'primary' : '', disabled: !done, onclick: () => { const r = D.questClaim(q.id); if (r) { toast(r); if (window.Sfx) Sfx.play('coin'); } questsScreen(); } }, done ? 'Claim' : 'In progress'))));
+    });
+    screen(topbar('Daily quests', menu), h('p', { style: 'padding:0 8px' }, 'Three new quests every day. Progress counts in every mode.'), list);
   }
 
   // ----- deck choice helper -----
@@ -792,9 +903,18 @@
     });
   }
 
-  function battleVsAI(deck, foe, onEnd, exit) {
+  function battleVsAI(deck, foe, onEnd, exit, noRematch) {
     const s = E.newGame({ players: [{ leader: deck.leader, deck: deck.cards, name: P().name }, foe] });
-    startBattle({ mode: 'ai', state: s, s, me: 0, level: foe.ai || 2, onEnd, exit });
+    startBattle({ mode: 'ai', state: s, s, me: 0, level: foe.ai || 2, onEnd, exit, boss: foe.boss || null,
+      rematch: noRematch ? null : () => battleVsAI(deck, foe, onEnd, exit) });
+  }
+  function tutorial() {
+    const t = D.tutorialSetup();
+    const s = E.newGame(t);
+    startBattle({ mode: 'ai', s, me: 0, level: 1, tutorial: true, script: t.script,
+      boss: { name: 'Pick, the Tunneler', intro: 'A new recruit? Let us see what you have got.', hurt: 'Hey, you are getting the hang of this!', win: 'Practice makes perfect. Go again!', lose: 'Well played! You are ready for the real thing.' },
+      onEnd: won => { const first = D.tutorialDone(); return { lines: [first ? 'Tutorial complete: +1 pack, +50 gold' : 'Tutorial complete', won ? 'Next: try a Skirmish or start the Campaign.' : 'You still learned the ropes. Try the Campaign!'] }; },
+      exit: () => menu() });
   }
 
   // ----- campaign -----
@@ -805,8 +925,8 @@
       const open = D.campaignOpen(s); const done = p.campaign[s];
       grid.append(h('div', { class: 'kcard' + (open ? '' : ' locked'), onclick: () => open ? kingdomStages(s) : toast('Clear all four kingdoms to reach United Falls') },
         cardEl(s + 'A', 64, { locked: !open }),
-        h('div', { class: 'grow' }, h('div', { class: 'kname', style: `color:var(--${s})` }, K[s].name), h('div', { class: 'small' }, K[s].suit + ' ' + K[s].sym),
-          h('p', null, done >= 7 ? 'Conquered ✓' : done + ' / 7 stages'), h('div', { class: 'bar' }, h('i', { style: `width:${done / 7 * 100}%;background:var(--${s})` })),
+        h('div', { class: 'grow' }, h('div', { class: 'kname', style: `color:var(--${s})` }, K[s].name), h('div', { class: 'small' }, sym(s), ' ' + K[s].suit),
+          h('p', null, done >= 7 ? 'Conquered' : done + ' / 7 stages'), h('div', { class: 'bar' }, h('i', { style: `width:${done / 7 * 100}%;background:var(--${s})` })),
           !open ? h('p', { class: 'small' }, 'Locked: clear the other four first.') : null)));
     });
     const all = E.SUITS.every(s => p.campaign[s] >= 7);
@@ -831,13 +951,16 @@
     const st = D.STAGES[i];
     const foe = D.stageSetup(s, i);
     const extra = h('div', null,
-      h('p', null, 'Opponent: ' + foe.name), h('p', null, 'Their castle: ' + foe.castle + ' · Skill: ' + ['', 'Novice', 'Knight', 'Cunning'][foe.ai]),
+      h('p', null, 'Opponent: ' + foe.name), foe.boss ? h('p', { class: 'quote' }, '"' + foe.boss.intro + '"') : null,
+      foe.boss ? h('div', { class: 'row' }, h('span', { class: 'small' }, 'Signature card:'), cardEl(foe.boss.sig, 44, { onclick: () => showCard(foe.boss.sig) })) : null,
+      h('p', null, 'Their castle: ' + foe.castle + ' · Skill: ' + ['', 'Novice', 'Knight', 'Cunning'][foe.ai]),
       i === 6 ? h('p', null, 'Twist: ' + D.TWIST[s].text) : null,
       h('p', { class: 'gold', style: 'color:#a77215' }, 'Reward: 1 pack + 30 gold' + (i >= 3 && i <= 5 ? ' + a hero variant' : '') + (i === 6 ? ' + unlock ' + K[s].name : '')));
     chooseDeck('Stage ' + (i + 1) + ': ' + st.name, deck => {
       battleVsAI(deck, foe, won => {
         if (!won) { D.reward(false, foe.ai); return { lines: ['+15 gold. Try again!'] }; }
         P().wins++;
+        D.questBump('campaign');
         const r = D.campaignWin(s, i);
         return { lines: r.msgs, forced: r.forced };
       }, res => {
@@ -854,7 +977,7 @@
     const draw = () => {
       body.innerHTML = '';
       const ks = h('div', { class: 'tabs' }, h('button', { class: foeS === 'R' ? 'sel' : '', onclick: () => { foeS = 'R'; draw(); } }, 'Random'),
-        ...E.SUITS.map(x => h('button', { class: (foeS === x ? 'sel ' : '') + 'suitbtn ' + x, onclick: () => { foeS = x; draw(); } }, sym(x) + ' ' + K[x].suit)));
+        ...E.SUITS.map(x => h('button', { class: (foeS === x ? 'sel ' : '') + 'suitbtn ' + x, onclick: () => { foeS = x; draw(); } }, sym(x), ' ' + K[x].suit)));
       const ls = h('div', { class: 'tabs' }, ...[1, 2, 3].map(l => h('button', { class: lvl === l ? 'sel' : '', onclick: () => { lvl = l; draw(); } }, ['', 'Novice', 'Knight', 'Cunning'][l])));
       body.append(h('div', { class: 'panel' }, h('h3', null, 'Opponent kingdom'), ks, h('h3', null, 'Difficulty'), ls,
         h('p', null, 'Win: +' + [0, 30, 45, 60][lvl] + ' gold · Loss: +15 gold'),
@@ -922,8 +1045,20 @@
     const keys = filterKeys(f);
     const have = keys.filter(k => D.owned(k)).length;
     const grid = h('div', { class: 'grid', style: '--cw:72px' });
-    keys.forEach(k => { const n = D.owned(k); grid.append(cardEl(k, 72, { locked: !n, count: n ? n + '/' + D.maxCopies(k) : null, vtag: E.def(k).v !== 'b' ? E.def(k).vName : null, onclick: () => showCard(k) })); });
+    keys.forEach(k => { const n = D.owned(k); grid.append(cardEl(k, 72, { locked: !n, count: n ? n + '/' + D.maxCopies(k) : null, vtag: E.def(k).v !== 'b' ? E.def(k).vName : null, onclick: () => showCard(k, close => craftBox(k, close, () => collection(f))) })); });
     screen(topbar('Collection', menu), tabs, h('p', null, have + ' / ' + keys.length + ' collected in this view'), grid);
+  }
+
+  function craftBox(k, close, after) {
+    const cost = D.craftCost(k), n = D.owned(k), max = D.maxCopies(k), p = P();
+    const box = h('div', { class: 'craft' }, h('p', null, 'Owned: ' + n + ' / ' + max));
+    if (cost == null) box.append(h('p', { class: 'small muted' }, E.def(k).type === 'ace' ? 'Base Aces are unlocked by conquering their kingdom in the Campaign.' : 'This card cannot be crafted.'));
+    else if (n >= max) box.append(h('p', { class: 'small muted' }, 'You own the most copies a deck can use.'));
+    else {
+      box.append(h('button', { class: 'primary big', disabled: p.gold < cost, onclick: () => { if (D.craft(k)) { if (window.Sfx) Sfx.play('pack'); toast('Crafted ' + E.def(k).name); close(); after(); } } }, 'Craft · ' + cost + ' gold'));
+      if (p.gold < cost) box.append(h('p', { class: 'small muted' }, 'You have ' + p.gold + ' gold.'));
+    }
+    return box;
   }
 
   // ----- decks -----
@@ -932,10 +1067,23 @@
     const list = h('div', { class: 'decklist' });
     p.decks.forEach((d, i) => {
       const errs = E.validateDeck(d.leader, d.cards).concat(ownErrors(d));
-      list.append(h('div', { class: 'dl', style: '--cw:40px', onclick: () => editDeck(i) }, cardEl(d.leader, 40), h('span', { class: 'n' }, d.name), h('span', { class: 'q' }, errs.length ? '⚠ ' + d.cards.length + '/30' : '✓ ' + d.cards.length)));
+      list.append(h('div', { class: 'dl', style: '--cw:40px', onclick: () => editDeck(i) }, cardEl(d.leader, 40), h('span', { class: 'n' }, d.name), h('span', { class: 'q' }, errs.length ? gico('ico-close', 'sm') : gico('ico-check', 'sm'), ' ' + d.cards.length + '/30')));
     });
     screen(topbar('Decks', menu), list,
-      h('div', { class: 'row center' }, h('button', { class: 'primary', onclick: () => { const L = D.leaders()[0]; p.decks.push({ name: 'New deck', leader: L, cards: [] }); D.save(); editDeck(p.decks.length - 1); } }, 'New deck')));
+      h('div', { class: 'row center' }, h('button', { class: 'primary', onclick: () => { const L = D.leaders()[0]; p.decks.push({ name: 'New deck', leader: L, cards: [] }); D.save(); editDeck(p.decks.length - 1); } }, 'New deck'),
+        h('button', { onclick: importDeck }, 'Import code')));
+  }
+  function importDeck() {
+    sheet((box, close) => {
+      const ta = h('textarea', { class: 'codebox', rows: 4, placeholder: 'Paste a deck code (starts with PLB1.)' });
+      box.append(h('h2', null, 'Import a deck'), h('p', null, 'Paste a code a friend shared. Cards you do not own yet are flagged so you can craft or unpack them.'), ta,
+        h('div', { class: 'row center' }, h('button', { class: 'primary big', onclick: () => {
+          const d = D.parseCode(ta.value);
+          if (!d) return toast('That code does not look right');
+          const p = P(); if (!D.leaders().includes(d.leader)) toast('You do not own that leader yet; deck saved anyway');
+          p.decks.push(d); D.save(); close(); editDeck(p.decks.length - 1);
+        } }, 'Import')));
+    });
   }
   function editDeck(i, tab, f) {
     const p = P(); const d = p.decks[i];
@@ -948,14 +1096,14 @@
         h('span', { class: 'chip ' + (d.cards.length === 30 ? 'gold' : '') }, d.cards.length + ' / 30')),
       h('div', { class: 'row' }, h('span', { class: 'px small' }, 'Leader'), ...leaders.map(L => h('div', { style: 'cursor:pointer;outline:' + (L === d.leader ? '3px solid var(--gold)' : 'none'), onclick: () => { d.leader = L; D.save(); editDeck(i, tab, f); } }, cardEl(L, 38)))),
       h('p', { class: 'small' }, 'Main suit: ' + K[E.def(d.leader).suit].suit + '. Add one ally suit (up to 10 cards)' + (E.def(d.leader).suit !== 'U' ? ' and up to 5 United cards' : '') + '. Max 3 of each troop, 1 of each hero/Joker version.'),
-      errs.length ? h('div', { class: 'errs' }, ...errs.slice(0, 4).map(e => h('div', null, '• ' + e))) : h('div', { class: 'okline' }, h('img', { src: 'assets/gui/ico-check.png', alt: '' }), 'Legal deck'));
+      errs.length ? h('div', { class: 'errs' }, ...errs.slice(0, 4).map(e => h('div', null, '- ' + e))) : h('div', { class: 'okline' }, h('img', { src: 'assets/gui/ico-check.png', alt: '' }), 'Legal deck'));
     const tabs = h('div', { class: 'tabs' }, h('button', { class: tab === 'deck' ? 'sel' : '', onclick: () => editDeck(i, 'deck', f) }, 'Deck (' + d.cards.length + ')'), h('button', { class: tab === 'add' ? 'sel' : '', onclick: () => editDeck(i, 'add', f) }, 'Add cards'));
     const body = h('div');
     if (tab === 'deck') {
       const keys = Object.keys(cnt).sort((a, b) => E.def(a).cost - E.def(b).cost || a.localeCompare(b));
       const list = h('div', { class: 'decklist' });
       keys.forEach(k => list.append(h('div', { class: 'dl', onclick: () => { d.cards.splice(d.cards.indexOf(k), 1); D.save(); editDeck(i, tab, f); } },
-        cardEl(k, 26), h('span', { class: 'n' }, E.def(k).name + (E.def(k).v !== 'b' ? ' (' + E.def(k).vName + ')' : '')), h('span', { class: 'q' }, '×' + cnt[k] + ' · ' + E.def(k).cost + '¢'), h('span', null, '−'))));
+        cardEl(k, 26), h('span', { class: 'n' }, E.def(k).name + (E.def(k).v !== 'b' ? ' (' + E.def(k).vName + ')' : '')), h('span', { class: 'q' }, 'x' + cnt[k] + ' · ', gico('ico-crown', 'cr'), E.def(k).cost), gico('ico-close', 'sm'))));
       if (!keys.length) list.append(h('p', null, 'Empty. Tap "Add cards".'));
       body.append(list);
     } else {
@@ -977,6 +1125,12 @@
     }
     screen(topbar('Edit deck', decks), head, tabs, body,
       h('div', { class: 'row center' },
+        h('button', { class: 'primary', onclick: () => sheet((box) => {
+          const code = D.deckCode(d);
+          const ta = h('textarea', { class: 'codebox', rows: 4, readonly: true }, code);
+          box.append(h('h2', null, 'Share deck code'), h('p', null, 'Send this code to a friend. They can paste it in Decks, Import code.'), ta,
+            h('div', { class: 'row center' }, h('button', { class: 'primary big', onclick: () => { (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('Copied'), () => { ta.select(); toast('Select and copy the code'); }); } }, 'Copy code')));
+        }) }, 'Share code'),
         h('button', { onclick: () => { d.cards = D.starterCards(E.def(d.leader).suit).filter(k => D.owned(k)); D.save(); editDeck(i, tab, f); } }, 'Reset to starter'),
         h('button', { class: 'danger', onclick: () => { if (p.decks.length <= 1) return toast('Keep at least one deck'); if (confirm('Delete this deck?')) { p.decks.splice(i, 1); p.active = 0; D.save(); decks(); } } }, 'Delete')));
   }
@@ -1017,7 +1171,7 @@
             h('button', { class: 'primary big', onclick: () => {
               const s = E.SUITS[Math.floor(Math.random() * 5)];
               const foe = { leader: s + 'A', deck: D.genDeck(s, { jokers: true, variant: dr.wins >= 2 ? 'o' : 'b' }), ai: 2 + (dr.wins >= 2 ? 1 : 0), name: K[s].name + ' Drafter' };
-              battleVsAI(deck, foe, won => { if (won) dr.wins++; else dr.losses++; D.save(); return { lines: ['Record: ' + dr.wins + 'W – ' + dr.losses + 'L'] }; }, () => draft());
+              battleVsAI(deck, foe, won => { if (won) dr.wins++; else dr.losses++; D.save(); return { lines: ['Record: ' + dr.wins + 'W – ' + dr.losses + 'L'] }; }, () => draft(), true);
             } }, 'Play next match'),
             h('button', { class: 'ghost', onclick: () => sheet((box, close) => { box.append(h('h2', null, 'Draft deck'), h('div', { class: 'grid', style: '--cw:56px' }, ...deck.cards.map(k => cardEl(k, 56)))); box.append(h('button', { onclick: close }, 'Close')); }) }, 'View deck'))));
     }
@@ -1039,7 +1193,17 @@
           h('button', { class: 'big', disabled: !d, onclick: () => joinPrompt(d) }, 'Join')),
         status);
     };
+    let guest = null; const want = { me: false, them: false };
     function hostDuel(d) {
+      const begin = () => {
+        want.me = want.them = false;
+        const s = E.newGame({ players: [{ leader: d.leader, deck: d.cards, name: P().name }, { leader: guest.deck.leader, deck: guest.deck.cards, name: String(guest.name || 'Guest').slice(0, 16) }] });
+        s.ev = [];
+        Net.send({ t: 'start', s: E.redact(s, 1) });
+        startBattle({ mode: 'host', s, me: 0, onEnd: won => ({ lines: ['+' + D.reward(won, 2) + ' gold'] }), exit: () => { Net.close(); menu(); },
+          rematch: () => { want.me = true; Net.send({ t: 'rematch' }); if (want.them) begin(); else rematchWait(); } });
+      };
+      hostDuel.begin = begin;
       status.textContent = 'Opening a room…';
       Net.host(code => {
         body.innerHTML = '';
@@ -1050,11 +1214,9 @@
         if (msg.t === 'hello') {
           const errs = E.validateDeck(msg.deck.leader, msg.deck.cards);
           if (errs.length) { Net.send({ t: 'reject', msg: 'Illegal deck: ' + errs[0] }); return; }
-          const s = E.newGame({ players: [{ leader: d.leader, deck: d.cards, name: P().name }, { leader: msg.deck.leader, deck: msg.deck.cards, name: String(msg.name || 'Guest').slice(0, 16) }] });
-          s.ev = [];
-          Net.send({ t: 'start', s: E.redact(s, 1) });
-          startBattle({ mode: 'host', state: s, s, me: 0, onEnd: won => ({ lines: ['+' + D.reward(won, 2) + ' gold'] }), exit: () => { Net.close(); menu(); } });
-        } else netMessage(msg);
+          guest = msg; begin();
+        } else if (msg.t === 'rematch') { want.them = true; if (!want.me) toast('Your friend wants a rematch'); if (want.me) begin(); }
+        else netMessage(msg);
       }, err => { status.textContent = 'Connection problem: ' + err; }, () => netClosed());
     }
     function joinPrompt(d) {
@@ -1068,10 +1230,16 @@
     function joinDuel(code, d) {
       status.textContent = 'Connecting to ' + code + '…';
       Net.join(code, () => { status.textContent = 'Connected! Starting…'; Net.send({ t: 'hello', name: P().name, deck: { leader: d.leader, cards: d.cards }, v: 1 }); }, msg => {
-        if (msg.t === 'start') startBattle({ mode: 'guest', state: msg.s, s: msg.s, me: 1, onEnd: won => ({ lines: ['+' + D.reward(won, 2) + ' gold'] }), exit: () => { Net.close(); menu(); } });
+        if (msg.t === 'start') startBattle({ mode: 'guest', s: msg.s, me: 1, onEnd: won => ({ lines: ['+' + D.reward(won, 2) + ' gold'] }), exit: () => { Net.close(); menu(); },
+          rematch: () => { Net.send({ t: 'rematch' }); rematchWait(); } });
+        else if (msg.t === 'rematch') toast('Your friend wants a rematch');
         else if (msg.t === 'reject') { toast(msg.msg); Net.close(); }
         else netMessage(msg);
       }, err => { status.textContent = 'Could not connect: ' + err; }, () => netClosed());
+    }
+    function rematchWait() {
+      screen(topbar('Rematch', () => { Net.close(); menu(); }), h('div', { class: 'panel' }, h('h2', null, 'Rematch requested'),
+        h('p', null, 'Waiting for your friend to tap Rematch too…'), h('div', { class: 'row center' }, h('button', { class: 'big', onclick: () => { Net.close(); menu(); } }, 'Leave'))));
     }
     draw();
     screen(topbar('Duel', () => { Net.close(); menu(); }), body);
@@ -1089,11 +1257,13 @@
       h('h3', null, 'Card costs'), h('p', null, '2–4: 1 Crown · 5–7: 2 · 8–10: 3 · Jack 3 · Queen 4 · King 5. Health equals the card number. Lower numbers hit harder for their cost.'),
       h('h3', null, 'Board poker hands'), h('p', null, 'Your 5 board slots make a poker hand. The best hand powers up your board.'), pokerTable(-1), flushTable(),
       h('h3', null, 'Truth & Lies'),
-      h('p', null, 'Once per turn you can play any card face-down and declare it as a number card (like "8♥"). It fights as that card and counts as it for poker. You pay the declared cost.'),
+      h('p', null, 'Once per turn you can play any card face-down and declare it as a number card (like "8 of Hearts"). It fights as that card and counts as it for poker. You pay the declared cost.'),
       h('p', null, 'Your opponent can pay 1 Crown to call it. If it was a lie, it\'s destroyed. If it was the truth, it flips face-up and the caller\'s castle takes 3.'),
       h('p', null, 'The TRUE Joker exposes every enemy hidden card (lies are destroyed and hurt their owner). The FALSE Joker is wild and can never be called.'),
-      h('h3', null, 'Kingdoms'), ...E.SUITS.map(s => h('p', null, h('b', null, sym(s) + ' ' + K[s].name + ' — ' + K[s].trait + ': '), K[s].traitText)),
+      h('h3', null, 'Kingdoms'), ...E.SUITS.map(s => h('p', null, h('b', null, sym(s), ' ' + K[s].name + ' — ' + K[s].trait + ': '), K[s].traitText)),
       h('h3', null, 'Versions'), h('p', null, 'Heroes, Aces and Jokers come in versions with different rules. Origin: echo the ability when it dies. Classic: cheaper and smaller. Animated: the ability repeats every turn. Number-card foils are cosmetic only.'),
+      h('h3', null, 'Targets'), h('p', null, 'Bribe, Last Rites and Graft let you tap the target when you play them. Tap your Duelist and choose Aim attack to pick who it hits.'),
+      h('h3', null, 'Collecting'), h('p', null, 'Open packs, finish daily Quests, or Craft a specific card with gold from the Collection. Share decks with codes from the deck editor.'),
       h('h3', null, 'Decks'), h('p', null, '30 cards. Mostly your leader\'s suit, plus one ally suit (max 10) and up to 5 United cards. Max 3 copies of a troop, 1 of each hero or Joker version.')));
   }
 
@@ -1110,7 +1280,7 @@
       h('div', { class: 'row' }, h('button', { class: 'danger', onclick: () => { if (confirm('Erase all progress? This cannot be undone.')) { D.reset(); title(); } } }, 'Reset progress'))));
   }
 
-  window.UI = { title, menu, cardEl, toast, netMessage, netClosed, _B: () => B, _startBattle: startBattle };
+  window.UI = { title, menu, cardEl, toast, netMessage, netClosed, _B: () => B, _render: () => B && render(), _startBattle: startBattle };
   document.addEventListener('click', e => { if (e.target.closest('button, .tile, .kcard, .stage') && window.Sfx) Sfx.play('click'); }, true);
   document.addEventListener('DOMContentLoaded', title);
 })();

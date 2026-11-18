@@ -473,3 +473,63 @@ button:not(:disabled):hover { filter: brightness(1.05); }
 .turnflag.mini.mine { border-image-source: url(../assets/gui/box-mint.png); }
 
 .tile .t { font-size: .76rem; letter-spacing: 0; }
+
+/* cropped graphics instead of symbols */
+.pip { height: 1em; width: auto; image-rendering: pixelated; vertical-align: -0.12em; margin: 0 1px; }
+.lbl { display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; }
+.card .tag .pip { height: calc(var(--cw) * .17); }
+.gico { image-rendering: pixelated; vertical-align: middle; }
+.gico.sm { width: 20px; height: 20px; }
+.gico.cr { height: 10px; width: auto; margin: 0 2px; }
+.iconbtn .gico { width: 40px; height: 40px; }
+.battle .menu-btn { padding: 0; min-height: 0; }
+.card .zz { font: 400 calc(var(--cw) * .13) 'Silkscreen'; background: var(--navy); color: var(--gcream); padding: 2px 3px 1px; top: 40%; right: auto; left: 50%; transform: translateX(-50%); }
+.flushes { margin-top: 8px; font-size: 1.05rem; }
+.flushes div { display: flex; align-items: center; gap: 4px; }
+.picker .pip, .tabs .pip { height: 1.1em; }
+.pico { width: auto !important; height: clamp(7px, calc(var(--cw) * .13), 11px) !important; }
+.hcard .pico { height: clamp(7px, calc(var(--hcw) * .13), 11px) !important; }
+.stat .sh { background: #36325e; }
+.stat .sh.hurt { background: #5c1f2c; color: #ffb3b3; }
+.stat .sa { background: #6b6788; }
+.hcost { background: var(--navy); color: var(--gcream); box-shadow: 0 0 0 2px #15132a, inset 0 -2px 0 rgba(0,0,0,.35); }
+.hcost.cant { background: #8a879c; color: #e6e4da; box-shadow: 0 0 0 2px #15132a; }
+.hcost .pico { height: 9px !important; }
+
+.crowni { height: 10px; image-rendering: pixelated; }
+.crowni.off { filter: grayscale(1) opacity(.45); }
+.coini { height: 13px; image-rendering: pixelated; }
+.battle.compact .crowni { height: 8px; }
+.battle.compact .coini { height: 11px; }
+
+.slot.tgt { box-shadow: 0 0 0 3px var(--gold), 0 0 12px var(--gold); animation: pulse 0.9s infinite; border-radius: 3px; }
+.slot.tgt .card { cursor: url(../assets/gui/cursor.png) 6 2, crosshair; }
+
+/* coach, speech, quests, codes */
+.coach { display: flex; gap: 8px; align-items: flex-start; text-align: left; margin-top: 4px; max-width: 520px;
+  border-style: solid; border-width: 8px; border-image: url(../assets/gui/box-yellow.png) 4 fill / 8px stretch; color: var(--navy); padding: 2px 6px 4px; font-size: 1.05rem; line-height: 1.1; animation: slam .4s; }
+.coach .gico { width: 28px; height: 28px; flex: none; }
+.battle.compact .midline .mcenter:has(.coach) { display: flex; }
+.battle.compact .mcenter:has(.coach) > .row, .battle.compact .mcenter:has(.coach) > .last { display: none; }
+.speech { position: fixed; z-index: 57; border-style: solid; border-width: 8px; border-image: url(../assets/gui/box-cream.png) 4 fill / 8px stretch; color: var(--navy); padding: 2px 8px 4px; font-size: 1.05rem; line-height: 1.15; animation: slam .3s; pointer-events: none; }
+.speech b { display: block; font: 400 .6rem 'Silkscreen'; color: var(--teal); }
+.speech::before { content: ''; position: absolute; left: 10px; top: -15px; border: 7px solid transparent; border-bottom-color: var(--navy); }
+.quote { font-style: italic; text-align: center; font-size: 1.1rem; }
+.quote b { font-style: normal; font-family: 'Silkscreen'; font-size: .7rem; }
+.quests { display: flex; flex-direction: column; }
+.quest .qt { font: 400 .8rem 'Silkscreen'; margin-bottom: 6px; }
+.quest.claimed { opacity: .55; }
+.qbar { height: 22px; position: relative; border-style: solid; border-width: 4px; border-image: url(../assets/gui/box-navy.png) 4 fill / 4px stretch; margin-bottom: 4px; }
+.qbar i { position: absolute; inset: 0 auto 0 0; background: var(--mint); }
+.qbar b { position: absolute; inset: 0; text-align: center; font: 400 .65rem/14px 'Silkscreen'; color: var(--gcream); text-shadow: 1px 1px 0 #000; }
+.tile { position: relative; }
+.tile .tico { width: 40px; height: 40px; flex: none; }
+.badge-new { position: absolute; top: -10px; right: -8px; background: var(--magenta); color: #fff; font: 400 .65rem 'Silkscreen'; padding: 3px 6px 2px; box-shadow: 0 0 0 2px var(--navy); animation: pulse2 1.4s infinite; }
+.codebox { width: 100%; font: 400 1rem 'VT323', monospace; padding: 6px; border-style: solid; border-width: 8px; border-image: url(../assets/gui/box-cream.png) 4 fill / 8px stretch; background: transparent; color: var(--navy); word-break: break-all; resize: none; }
+.craft { margin-top: 8px; }
+.coach { font-family: 'VT323', monospace; text-transform: none; letter-spacing: 0; font-size: 1.1rem; }
+.coach span { font-family: 'VT323', monospace; }
+.speech { max-width: calc(100vw - 40px); }
+.crowni { height: 11px; }
+
+.tabs button.sel, .picker button.sel { border-image-source: url(../assets/gui/box-yellow.png); color: var(--navy); }
