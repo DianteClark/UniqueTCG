@@ -533,3 +533,7 @@ button:not(:disabled):hover { filter: brightness(1.05); }
 .crowni { height: 11px; }
 
 .tabs button.sel, .picker button.sel { border-image-source: url(../assets/gui/box-yellow.png); color: var(--navy); }
+
+.counter { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; }
+.counter b { font: 400 .72rem 'Silkscreen'; color: var(--navy); }
+.battle.compact .counter b { font-size: .62rem; }

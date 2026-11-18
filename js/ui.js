@@ -209,8 +209,8 @@
     if (mine && p.powerUses > 0 && myTurnNow()) leader.classList.add('ready');
     const pct = Math.max(0, p.castle) / p.castleMax * 100;
     const crowns = h('div', { class: 'res' });
-    for (let i = 0; i < Math.max(p.maxCrowns, p.crowns); i++) crowns.append(h('img', { class: 'crowni' + (i < p.crowns ? '' : ' off'), src: 'assets/gui/ico-crown.png', alt: '' }));
-    for (let i = 0; i < p.coins; i++) crowns.append(h('img', { class: 'coini', src: 'assets/gui/ico-coin.png', alt: 'Coin' }));
+    crowns.append(h('span', { class: 'counter', title: 'Crowns this turn / max' }, h('img', { class: 'crowni', src: 'assets/gui/ico-crown.png', alt: 'Crowns' }), h('b', null, p.crowns + '/' + p.maxCrowns)));
+    if (p.coins) crowns.append(h('span', { class: 'counter', title: 'Coins' }, h('img', { class: 'coini', src: 'assets/gui/ico-coin.png', alt: 'Coins' }), h('b', null, p.coins)));
     const who = h('div', { class: 'who' },
       h('div', { class: 'name' }, p.name),
       h('div', { class: 'hpbar' + (p.castle <= 8 ? ' low' : ''), 'data-k': 'c' + side }, h('i', { style: `width:${pct}%` }), h('b', null, Math.max(0, p.castle) + ' / ' + p.castleMax)),
