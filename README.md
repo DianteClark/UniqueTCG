@@ -10,7 +10,7 @@ A pixel-art trading card game built from a standard 52-card deck. Number cards a
 - **Starting a match:** a coin toss decides who picks; the winner chooses to go first or second (second gets 1 bonus Coin). Both players may then swap up to 3 cards from their starting hand.
 - **Each turn:** draw 1, optionally **muck** (discard up to 2 and draw that many), play cards, then end your turn. Each troop attacks the card across from it, or the castle if the lane is empty. New troops are ready next turn.
 - **Health = the card's number.** Lower numbers hit harder for their cost.
-- **Board poker hands:** Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Royal Flush (instant win). Each gives a bonus.
+- **Board poker hands:** Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Royal Flush (instant win). Every hand on your board gives its bonus, so they stack (a Full House also gets the Three of a Kind and Pair bonuses).
 - **Targets:** Bribe, Last Rites and Graft pick their target when played; a Duelist can be aimed.
 - **Truth & Lies:** once per turn, play any card face-down and declare it as a number card. Your opponent can pay 1 Crown to call it. A lie is destroyed. If you told the truth, the caller takes 3. The TRUE Joker exposes every hidden enemy card. The FALSE Joker is wild and can never be called.
 

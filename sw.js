@@ -1,7 +1,7 @@
 /* Plebes TCG service worker: works offline after the first visit.
    Code and pages: network first (so updates show up), cache as fallback.
    Art and fonts: cache first. */
-const CACHE = 'plebes-v4';
+const CACHE = 'plebes-v5';
 const CORE = ['./', 'index.html', 'css/style.css', 'js/sfx.js', 'js/engine.js', 'js/ai.js', 'js/data.js', 'js/net.js', 'js/ui.js',
   'assets/base.png', 'assets/origin.png', 'assets/classic.png', 'assets/u004.png', 'manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });

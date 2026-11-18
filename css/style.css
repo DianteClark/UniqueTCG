@@ -545,3 +545,34 @@ body.inbattle { position: fixed; inset: 0; overflow: hidden; height: auto; }
   padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
 #app { padding-top: max(10px, env(safe-area-inset-top)); }
 .veil { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+.handinfo { flex-wrap: wrap; row-gap: 2px; }
+.handinfo .hn.sub { border-image-source: url(../assets/gui/box-peach.png); }
+.lockedlead { position: relative; cursor: pointer; }
+.lockedlead .lockico { position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; image-rendering: pixelated; }
+
+/* how to play accordion */
+.acc { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 20px; }
+.acc-head { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0; text-align: left; font-size: .8rem; min-height: 52px; }
+.acc-head.open { border-image-source: url(../assets/gui/box-yellow.png); }
+.acc-ico { width: 24px; height: auto; max-height: 26px; }
+.acc-chev { width: 24px; height: 24px; transition: transform .15s; }
+.acc-head.open .acc-chev { transform: rotate(90deg); }
+.acc-body { margin: 4px 2px 8px; animation: fade .2s; }
+.minis { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+.handex { padding: 8px 0; border-bottom: 2px solid #ece3c3; }
+.handex:last-of-type { border-bottom: 0; }
+.hx-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hx-head .hn { font: 400 .62rem 'Silkscreen'; border-style: solid; border-width: 8px; border-image: url(../assets/gui/box-yellow.png) 4 fill / 8px stretch; padding: 0 4px 2px; }
+.hx-bonus { font-size: 1.05rem; color: var(--teal); }
+.kingrow { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 2px solid #ece3c3; }
+.kingrow p { margin: 2px 0; }
+.stat.demo { width: 90px; flex: none; --cw: 70px; }
+
+/* menus fill the screen; short content sits in the middle, not stuck at the top */
+#app { display: flex; flex-direction: column; min-height: 100dvh; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.screen-body { flex: 1; display: flex; flex-direction: column; justify-content: safe center; }
+.screen-inner { width: 100%; }
+.packcard.hasp { animation: packbob 2.4s ease-in-out infinite; filter: drop-shadow(0 8px 0 rgba(0,0,0,.35)); }
+@keyframes packbob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
+.packzone .packcard .count { font-size: .9rem; }

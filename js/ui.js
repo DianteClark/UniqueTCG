@@ -130,8 +130,9 @@
 
   // ---------- poker table ----------
   function pokerTable(cur) {
+    const on = Array.isArray(cur) ? cur : [cur];
     const t = h('table', { class: 'hands' });
-    for (let i = 9; i >= 1; i--) t.append(h('tr', { class: cur === i ? 'on' : '' }, h('td', null, E.HAND_NAMES[i]), h('td', null, E.HAND_TEXT[i])));
+    for (let i = 9; i >= 1; i--) t.append(h('tr', { class: on.includes(i) ? 'on' : '' }, h('td', null, E.HAND_NAMES[i]), h('td', null, E.HAND_TEXT[i])));
     return t;
   }
   function flushTable() {
@@ -263,9 +264,17 @@
 
   function handInfo(side) {
     const hd = E.evalBoard(B.s, side);
-    return h('div', { class: 'handinfo', onclick: () => pokerSheet(side) },
-      h('span', { class: 'hn' + (hd.rank ? '' : ' none') }, hd.rank ? hd.name : 'No hand'),
-      h('span', { class: 'ht' }, hd.rank ? E.HAND_TEXT[hd.rank] : (side === B.me ? 'Build poker hands on your board' : '')));
+    const box = h('div', { class: 'handinfo', onclick: () => pokerSheet(side) });
+    if (!hd.has.length) {
+      box.append(h('span', { class: 'hn none' }, 'No hand'), h('span', { class: 'ht' }, side === B.me ? 'Build poker hands on your board' : ''));
+      return box;
+    }
+    // best hand first, then any smaller hands that also apply (bonuses stack)
+    const shown = hd.has.filter(r => !(r === 1 && hd.has.includes(2)));
+    box.append(...shown.slice(0, 3).map((r, i) => h('span', { class: 'hn' + (i ? ' sub' : '') }, E.HAND_NAMES[r])));
+    if (shown.length > 3) box.append(h('span', { class: 'hn sub' }, '+' + (shown.length - 3) + ' more'));
+    box.append(h('span', { class: 'ht' }, hd.why));
+    return box;
   }
 
   function boardRow(side) {
@@ -288,7 +297,7 @@
         const isTgt = B.target && B.target.side === side && B.target.cands.includes(j);
         const c = cardEl(key, cw, { tag, tagCls, zz: s.active === side && u.born >= s.turn, onclick: (e) => { e.stopPropagation(); if (isTgt) pickTarget(j); else if (!B.target) unitSheet(side, j); } });
         if (isTgt) slot.classList.add('tgt');
-        if (hd.rank && hd.slots.includes(j)) c.classList.add('inhand-glow');
+        if (hd.lit.includes(j)) c.classList.add('inhand-glow');
         slot.append(c);
         cell.append(slot, statStrip(atk, u.hp, { atkUp: atk > u.atk, hurt: u.hp < u.maxHp }));
       } else {
@@ -345,7 +354,7 @@
     if (t === 2) return placed ? 'Tap End turn. Your troops attack the card across from them, or the castle if the lane is empty.' : 'You gain a Crown every turn (top of your bar). Play a 5 of Hearts.';
     if (t === 3) return hd >= 1 ? 'Pair! Matching ranks make poker hands. Tap the yellow label to see every bonus, then End turn.' : 'Play your other 5 of Hearts to make a Pair. Paired troops get +1 attack.';
     if (t === 4) return o.board.some(u => u && u.hidden) ? 'They played a card face-down and claim it is the 9 of Spades. Tap it and Call bluff (1 Crown). A lie is destroyed.' : 'Caught! You can bluff too: tap a card and choose Play face-down. Then End turn.';
-    if (t === 5) return p.powerUses > 0 ? 'Your Ace has a once-per-game power. Tap Power to Rally (heal 8), now or later.' : 'You know the basics. Knock their castle down!';
+    if (t === 5) return p.powerUses > 0 ? 'Your Ace has a once-per-game power. Tap Power, then a troop: Rally heals your castle and powers up that troop.' : 'You know the basics. Knock their castle down!';
     if (t === 6) return 'You know the basics. Knock their castle down!';
     return null;
   }
@@ -372,7 +381,8 @@
   }
   function pickTarget(j) {
     const t = B.target; B.target = null;
-    if (t.aim != null) doAct({ type: 'aim', slot: t.aim, target: j });
+    if (t.power) doAct({ type: 'power', target: j });
+    else if (t.aim != null) doAct({ type: 'aim', slot: t.aim, target: j });
     else doAct(Object.assign({}, t.play, { target: j }));
   }
 
@@ -466,14 +476,21 @@
     showCard(p.leader, close => h('div', null,
       h('p', null, K[p.suit].name + ' · Uses left: ' + p.powerUses),
       h('p', { class: 'small muted' }, 'Kingdom trait (' + K[p.suit].trait + '): ' + K[p.suit].traitText),
-      mine ? h('button', { class: 'primary big', disabled: !myTurn || p.powerUses <= 0, onclick: () => { close(); doAct({ type: 'power' }); } }, 'Use ' + E.def(p.leader).abilityName) : null));
+      mine ? h('button', { class: 'primary big', disabled: !myTurn || p.powerUses <= 0, onclick: () => {
+        close();
+        const L = E.def(p.leader);
+        const cands = p.board.map((x, j) => (x ? j : -1)).filter(j => j >= 0);
+        if (L.power === 'rally' && cands.length) { B.target = { power: true, side: B.me, cands, hint: 'Rally: tap a troop to heal and empower it' }; render(); }
+        else doAct({ type: 'power' });
+      } }, 'Use ' + E.def(p.leader).abilityName) : null));
   }
 
   function pokerSheet(side) {
     const hd = E.evalBoard(B.s, side);
     sheet((box) => {
-      box.append(h('h2', null, 'Board poker hands'), h('p', null, 'Your 5 board slots form a poker hand. The best hand gives a bonus. Hidden cards count as declared; the FALSE Joker counts as anything.'));
-      box.append(pokerTable(hd.rank), flushTable());
+      box.append(h('h2', null, 'Board poker hands'), h('p', null, 'Your 5 board slots form poker hands. Every hand on your board gives its bonus, so a Full House also gets the Three of a Kind and Pair bonuses. Hidden cards count as declared; the FALSE Joker counts as anything.'));
+      if (hd.has.length) box.append(h('p', { class: 'px small' }, 'Active now: ' + hd.has.map(r => E.HAND_NAMES[r]).join(', ')), h('p', null, 'Because: ' + hd.why));
+      box.append(pokerTable(hd.has), flushTable());
     });
   }
 
@@ -819,7 +836,16 @@
       p ? h('span', { class: 'chip gold' }, p.gold + ' gold') : null,
       p ? h('span', { class: 'chip' }, p.packs + (p.packs === 1 ? ' pack' : ' packs')) : null);
   }
-  function screen(...kids) { B = null; document.body.classList.remove('inbattle'); const a = app(); a.innerHTML = ''; kids.forEach(k => k && a.append(k)); window.scrollTo(0, 0); }
+  function screen(...kids) {
+    B = null; document.body.classList.remove('inbattle');
+    const a = app(); a.innerHTML = '';
+    kids = kids.filter(Boolean);
+    const head = kids[0] && kids[0].classList && kids[0].classList.contains('topbar') ? kids.shift() : null;
+    if (head) a.append(head);
+    // body fills the screen; short content is centered vertically instead of leaving dead space below
+    a.append(h('div', { class: 'screen-body' }, h('div', { class: 'screen-inner' }, ...kids)));
+    window.scrollTo(0, 0);
+  }
 
   // ----- title / onboarding -----
   function title() {
@@ -1002,7 +1028,7 @@
   function shop() {
     const p = P();
     screen(topbar('Packs', menu),
-      h('div', { class: 'packzone' }, cardEl('back', 108, { count: '×' + p.packs })),
+      h('div', { class: 'packzone' }, cardEl('back', Math.min(170, Math.floor(window.innerWidth * 0.42)), { count: 'x' + p.packs, cls: 'packcard' + (p.packs ? ' hasp' : '') })),
       h('p', { style: 'text-align:center' }, '5 cards per pack: 3 commons, 1 uncommon, 1 rare slot. Rares can be hero variants (Origin, Classic), Ace variants, foils, or Animated legends. Extra copies past the deck limit turn into gold.'),
       h('div', { class: 'row center' },
         h('button', { class: 'primary big', disabled: !p.packs, onclick: () => { p.packs--; D.save(); openPackScreen(null, shop); } }, 'Open a pack'),
@@ -1096,10 +1122,13 @@
     const errs = E.validateDeck(d.leader, d.cards).concat(ownErrors(d));
     const cnt = {}; d.cards.forEach(k => { cnt[k] = (cnt[k] || 0) + 1; });
     const leaders = D.leaders();
+    const locked = Object.keys(P().coll).filter(k => E.def(k).type === 'ace' && P().coll[k] > 0 && !leaders.includes(k));
     const head = h('div', { class: 'panel dark' },
       h('div', { class: 'row' }, h('input', { value: d.name, maxlength: 24, onchange: e => { d.name = e.target.value; D.save(); } }),
         h('span', { class: 'chip ' + (d.cards.length === 30 ? 'gold' : '') }, d.cards.length + ' / 30')),
-      h('div', { class: 'row' }, h('span', { class: 'px small' }, 'Leader'), ...leaders.map(L => h('div', { style: 'cursor:pointer;outline:' + (L === d.leader ? '3px solid var(--gold)' : 'none'), onclick: () => { d.leader = L; D.save(); editDeck(i, tab, f); } }, cardEl(L, 38)))),
+      h('div', { class: 'row' }, h('span', { class: 'px small' }, 'Leader'), ...leaders.map(L => h('div', { style: 'cursor:pointer;outline:' + (L === d.leader ? '3px solid var(--gold)' : 'none'), onclick: () => { d.leader = L; D.save(); editDeck(i, tab, f); } }, cardEl(L, 38))),
+        ...locked.map(L => h('div', { class: 'lockedlead', onclick: () => sheet(box => box.append(h('h2', null, 'Leader locked'), h('div', { class: 'cardrow' }, cardEl(L, 90, { locked: true }), h('p', null, 'You own this Ace, but you need to conquer ' + K[E.def(L).suit].name + ' in the Campaign before it can lead a deck. Beat all 7 stages there to unlock it.')))) }, cardEl(L, 38, { locked: true }), h('img', { class: 'lockico', src: 'assets/gui/ico-close.png', alt: 'Locked' })))),
+      locked.length ? h('p', { class: 'small' }, 'Greyed Aces unlock as leaders after you conquer their kingdom in the Campaign.') : null,
       h('p', { class: 'small' }, 'Main suit: ' + K[E.def(d.leader).suit].suit + '. Add one ally suit (up to 10 cards)' + (E.def(d.leader).suit !== 'U' ? ' and up to 5 United cards' : '') + '. Max 3 of each troop, 1 of each hero/Joker version.'),
       errs.length ? h('div', { class: 'errs' }, ...errs.slice(0, 4).map(e => h('div', null, '- ' + e))) : h('div', { class: 'okline' }, h('img', { src: 'assets/gui/ico-check.png', alt: '' }), 'Legal deck'));
     const tabs = h('div', { class: 'tabs' }, h('button', { class: tab === 'deck' ? 'sel' : '', onclick: () => editDeck(i, 'deck', f) }, 'Deck (' + d.cards.length + ')'), h('button', { class: tab === 'add' ? 'sel' : '', onclick: () => editDeck(i, 'add', f) }, 'Add cards'));
@@ -1250,26 +1279,87 @@
     screen(topbar('Duel', () => { Net.close(); menu(); }), body);
   }
 
-  // ----- how to play -----
+  // ----- how to play (tap-open sections) -----
+  const HAND_EXAMPLES = [
+    [1, ['H5', 'S5'], 'Two cards with the same number. Suits do not matter.'],
+    [2, ['H5', 'S5', 'D9', 'C9'], 'Two different pairs on your board at once.'],
+    [3, ['H7', 'S7', 'D7'], 'Three cards with the same number.'],
+    [4, ['H4', 'S5', 'D6', 'C7', 'H8'], 'Five numbers in a row, any suits. After 10 comes Jack, Queen, King.'],
+    [5, ['H2', 'H6', 'H9', 'H11', 'H13'], 'Five cards of the same suit. The numbers do not matter.'],
+    [6, ['H8', 'S8', 'D8', 'C3', 'H3'], 'Three of a Kind plus a Pair, all at once.'],
+    [7, ['H9', 'S9', 'D9', 'C9'], 'Four cards with the same number. Usually needs other suits, a bluff, or the wild Joker.'],
+    [8, ['H5', 'H6', 'H7', 'H8', 'H9'], 'A Straight where all five share one suit.'],
+    [9, ['H10', 'H11', 'H12', 'H13', 'JF'], '10, Jack, Queen, King and an Ace, all one suit. Aces are leaders, so the wild FALSE Joker plays the Ace.']
+  ];
+  function minis(keys, cw) { return h('div', { class: 'minis' }, ...keys.map(k => cardEl(k, cw || 48))); }
   function howTo() {
     const back = P() ? menu : title;
-    screen(topbar('How to play', back), h('div', { class: 'panel rules' },
-      h('h2', null, 'Goal'), h('p', null, 'Destroy the enemy castle. Your Ace is your leader and castle (30 health). Each Ace has a once-per-game power.'),
-      h('h3', null, 'Starting a match'), h('p', null, 'A coin toss decides who picks. The winner chooses to go first or second (second starts with 1 bonus Coin). Then both players may swap up to 3 cards from their starting hand.'),
-      h('h3', null, 'Your turn'),
-      h('ol', null, h('li', null, 'Gain a Crown (max 6) and draw a card.'), h('li', null, 'Muck once if you like: discard up to 2 cards, draw that many.'),
-        h('li', null, 'Spend Crowns to play cards into your 5 board slots. Coins pay when Crowns run out.'), h('li', null, 'End turn: each troop attacks the card across from it, and they hit each other. An empty lane means it hits the castle. New troops are ready next turn (ZZ).')),
-      h('h3', null, 'Card costs'), h('p', null, '2–4: 1 Crown · 5–7: 2 · 8–10: 3 · Jack 3 · Queen 4 · King 5. Health equals the card number. Lower numbers hit harder for their cost.'),
-      h('h3', null, 'Board poker hands'), h('p', null, 'Your 5 board slots make a poker hand. The best hand powers up your board.'), pokerTable(-1), flushTable(),
-      h('h3', null, 'Truth & Lies'),
-      h('p', null, 'Once per turn you can play any card face-down and declare it as a number card (like "8 of Hearts"). It fights as that card and counts as it for poker. You pay the declared cost.'),
-      h('p', null, 'Your opponent can pay 1 Crown to call it. If it was a lie, it\'s destroyed. If it was the truth, it flips face-up and the caller\'s castle takes 3.'),
-      h('p', null, 'The TRUE Joker exposes every enemy hidden card (lies are destroyed and hurt their owner). The FALSE Joker is wild and can never be called.'),
-      h('h3', null, 'Kingdoms'), ...E.SUITS.map(s => h('p', null, h('b', null, sym(s), ' ' + K[s].name + ' — ' + K[s].trait + ': '), K[s].traitText)),
-      h('h3', null, 'Versions'), h('p', null, 'Heroes, Aces and Jokers come in versions with different rules. Origin: echo the ability when it dies. Classic: cheaper and smaller. Animated: the ability repeats every turn. Number-card foils are cosmetic only.'),
-      h('h3', null, 'Targets'), h('p', null, 'Bribe, Last Rites and Graft let you tap the target when you play them. Tap your Duelist and choose Aim attack to pick who it hits.'),
-      h('h3', null, 'Collecting'), h('p', null, 'Open packs, finish daily Quests, or Craft a specific card with gold from the Collection. Share decks with codes from the deck editor.'),
-      h('h3', null, 'Decks'), h('p', null, '30 cards. Mostly your leader\'s suit, plus one ally suit (max 10) and up to 5 United cards. Max 3 copies of a troop, 1 of each hero or Joker version.')));
+    const SECTIONS = [
+      ['The goal', 'HA', () => [
+        h('p', null, 'Knock the enemy castle down to 0 to win.'),
+        h('div', { class: 'row' }, cardEl('HA', 60), h('p', { class: 'grow' }, 'Your Ace is your leader and your castle (30 health). It is never in your deck. Each Ace also has a once-per-game power.')),
+        h('p', null, 'A match takes about 10 to 15 minutes.')]],
+      ['Starting a match', 'JT', () => [
+        h('p', null, 'A coin toss picks who chooses. The winner goes first or second. Going second gives you 1 bonus Coin.'),
+        h('p', null, 'Then both players may swap up to 3 cards from their starting hand of 5.')]],
+      ['Your turn', 'gui:ico-crown', () => [
+        h('ol', null, h('li', null, 'Gain 1 Crown (max 6) and draw a card.'), h('li', null, 'Muck once if you like: discard up to 2 cards, draw that many.'),
+          h('li', null, 'Spend Crowns to play cards into your 5 board slots. Coins pay when Crowns run out.'), h('li', null, 'Tap End turn. Your troops attack.')),
+        h('p', null, 'Card costs (the crown above each card in your hand):'),
+        h('table', { class: 'hands' }, h('tr', null, h('td', null, '2 - 4'), h('td', null, '1 Crown')), h('tr', null, h('td', null, '5 - 7'), h('td', null, '2 Crowns')),
+          h('tr', null, h('td', null, '8 - 10'), h('td', null, '3 Crowns')), h('tr', null, h('td', null, 'Jack / Queen / King'), h('td', null, '3 / 4 / 5 Crowns')))]],
+      ['Combat', 'gui:ico-sword', () => [
+        h('p', null, 'At the end of your turn, each troop attacks the enemy card directly across from it. Both cards hit each other.'),
+        h('p', null, 'If the lane across is empty, the troop hits the enemy castle instead.'),
+        h('p', null, 'New troops REST on the turn they are played and attack from your next turn.'),
+        h('div', { class: 'row' }, h('div', { class: 'stat demo' }, h('span', { class: 'sa' }, h('img', { class: 'pico', src: 'assets/gui/ico-sword.png' }), '3'), h('span', { class: 'sh' }, h('img', { class: 'pico', src: 'assets/gui/pip-H.png' }), '5')),
+          h('p', { class: 'grow' }, 'Under each card: attack (sword) and health (heart). A card\'s health equals its number. Lower numbers hit harder for their cost.'))]],
+      ['Poker hands', 'H5', () => {
+        const out = [
+          h('p', null, 'New to poker? A "hand" is a pattern made by your cards. Here, the cards on your 5 board slots make your hand, and each pattern gives your troops a bonus.'),
+          h('p', null, 'Every hand on your board counts, so bonuses stack. A Full House also gets the Three of a Kind and Pair bonuses. Pairs and Three of a Kind work with fewer than 5 cards; Straights and Flushes need all 5.')];
+        HAND_EXAMPLES.forEach(([r, keys, text]) => out.push(h('div', { class: 'handex' },
+          h('div', { class: 'hx-head' }, h('span', { class: 'hn' }, E.HAND_NAMES[r]), h('span', { class: 'hx-bonus' }, E.HAND_TEXT[r])),
+          minis(keys), h('p', { class: 'small' }, text))));
+        out.push(flushTable());
+        return out;
+      }],
+      ['Truth & Lies', 'JF', () => [
+        h('p', null, 'Once per turn you may play any card face-down and declare it as a number card, like "8 of Hearts". It fights as that card and counts as it for poker hands. You pay the declared cost.'),
+        h('p', null, 'Your opponent can pay 1 Crown to call it. If it was a lie, the card is destroyed. If it was the truth, it flips face-up and the caller\'s castle takes 3.'),
+        h('p', null, 'Tip: a deck holds at most 3 copies of a card. If you can see 3 of them already, a 4th is a lie.'),
+        h('div', { class: 'row' }, cardEl('JT', 50), h('p', { class: 'grow' }, 'TRUE Joker: exposes every enemy hidden card. Lies are destroyed and hurt their owner.')),
+        h('div', { class: 'row' }, cardEl('JF', 50), h('p', { class: 'grow' }, 'FALSE Joker: wild. Counts as any rank and suit you choose, and can never be called.'))]],
+      ['Kingdoms', 'gui:pip-C', () => E.SUITS.map(s => h('div', { class: 'kingrow' }, cardEl(s + 'A', 44),
+        h('div', { class: 'grow' }, h('b', null, sym(s), ' ' + K[s].name), h('p', { class: 'small' }, K[s].trait + ': ' + K[s].traitText), h('p', { class: 'small muted' }, 'Ace power, ' + E.def(s + 'A').abilityName + ': ' + E.def(s + 'A').text))))],
+      ['Targets & powers', 'D11', () => [
+        h('p', null, 'Bribe, Last Rites and Graft let you tap their target after you place them. The valid targets glow.'),
+        h('p', null, 'Tap your Duelist (Jack of Hearts) and choose Aim attack to pick who it hits.'),
+        h('p', null, 'Tap Power to use your Ace. Rally asks you to tap one of your troops.')]],
+      ['Card versions', 'H13:a', () => [
+        h('div', { class: 'minis' }, cardEl('H13', 50), cardEl('H13:o', 50), cardEl('H13:c', 50), cardEl('H13:a', 50)),
+        h('p', null, 'Heroes, Aces and Jokers come in versions with different rules:'),
+        h('ul', null, h('li', null, 'Origin: the ability also fires when it dies.'), h('li', null, 'Classic: cheaper and smaller.'), h('li', null, 'Animated: the ability repeats every turn. The rarest.')),
+        h('p', null, 'Number-card Foils are cosmetic only.')]],
+      ['Decks & collecting', 'back', () => [
+        h('p', null, 'A deck has 30 cards, mostly your leader\'s suit, plus one ally suit (up to 10 cards) and up to 5 United cards. Max 3 copies of a troop, 1 of each hero or Joker version.'),
+        h('p', null, 'You can lead with an Ace once you conquer its kingdom in the Campaign.'),
+        h('p', null, 'Get cards from packs, daily Quests and the Campaign, or Craft a specific card with gold in the Collection. Share decks with codes from the deck editor.')]]
+    ];
+    let open = 0;
+    const wrap = h('div', { class: 'acc' });
+    const draw = () => {
+      wrap.innerHTML = '';
+      SECTIONS.forEach(([title, icon, body], i) => {
+        const head = h('button', { class: 'acc-head' + (i === open ? ' open' : ''), onclick: () => { open = open === i ? -1 : i; draw(); if (open >= 0) setTimeout(() => wrap.children[open].scrollIntoView({ block: 'start', behavior: 'smooth' }), 30); } },
+          icon.startsWith('gui:') ? gico(icon.slice(4), 'acc-ico') : cardEl(icon, 24), h('span', { class: 'grow' }, title), gico('ico-right', 'acc-chev'));
+        const sec = h('div', { class: 'acc-sec' }, head);
+        if (i === open) sec.append(h('div', { class: 'panel rules acc-body' }, ...body()));
+        wrap.append(sec);
+      });
+    };
+    draw();
+    screen(topbar('How to play', back), wrap);
   }
 
   // ----- credits / settings -----

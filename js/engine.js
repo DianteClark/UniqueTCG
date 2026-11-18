@@ -6,10 +6,10 @@
   const SUITS = ['H', 'D', 'S', 'C', 'U'];
   const KINGDOMS = {
     H: { name: 'Heartsbane', suit: 'Hearts', sym: 'H', color: '#d43c3c', trait: 'Blood Price', traitText: 'Pay 1 castle health: this troop gets +3 attack this turn.' },
-    D: { name: 'Portent Sound', suit: 'Diamonds', sym: 'D', color: '#3d82c4', trait: 'Tithe', traitText: 'When played face-up, gain 1 Coin (max 5). While you hold 2+ Coins, Diamonds troops get +1 attack. Coins pay for cards when Crowns run short.' },
+    D: { name: 'Portent Sound', suit: 'Diamonds', sym: 'D', color: '#3d82c4', trait: 'Tithe', traitText: 'When played face-up, gain 1 Coin (max 4). While you hold 3+ Coins, Diamonds troops get +1 attack. Coins pay for cards when Crowns run short.' },
     S: { name: 'Mt. Falstaff', suit: 'Spades', sym: 'S', color: '#8a4aa6', trait: 'Buried', traitText: 'When destroyed, deal 2 damage to the enemy castle.' },
-    C: { name: 'Cyrus Glen', suit: 'Clubs', sym: 'C', color: '#2f9a58', trait: 'Grow', traitText: 'Gains +1 attack at the start of your next turn.' },
-    U: { name: 'United Falls', suit: 'United', sym: 'U', color: '#4a3f63', trait: 'United', traitText: '+1 attack while another United card is on your board, +2 with three or more.' }
+    C: { name: 'Cyrus Glen', suit: 'Clubs', sym: 'C', color: '#2f9a58', trait: 'Grow', traitText: 'Gains +1 attack at the start of each of your turns (up to +2).' },
+    U: { name: 'United Falls', suit: 'United', sym: 'U', color: '#4a3f63', trait: 'United', traitText: '+1 attack while another United card is on your board, +2 with two or more.' }
   };
   const RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
   const rankLabel = r => RANK_LABEL[r] || String(r);
@@ -40,7 +40,7 @@
     U13: { id: 'unbowed', name: 'Unbowed', kind: 'passive', text: "Can't be destroyed while another United card is on your board." }
   };
   const ACE_POWER = {
-    H: { b: ['rally', 'Rally', 'Heal your castle 8.'], o: ['laststand', 'Last Stand', 'Your troops get +2 attack this turn.'] },
+    H: { b: ['rally', 'Rally', 'Heal your castle 6. Pick a troop: fully heal it and give it +2 attack this turn.'], o: ['laststand', 'Last Stand', 'Your troops get +2 attack this turn.'] },
     D: { b: ['treasury', 'Treasury', 'Gain 3 Crowns this turn.'], o: ['windfall', 'Windfall', 'Draw 2 cards and gain 2 Coins.'] },
     S: { b: ['gravecall', 'Grave Call', 'Return your troops destroyed since your last turn to empty slots.'], o: ['graverobber', 'Grave Robber', 'Put the strongest card in your graveyard into an empty slot.'] },
     C: { b: ['overgrowth', 'Overgrowth', 'Your troops get +2 health.'], o: ['wildwood', 'Wildwood', 'Your troops get +2 attack permanently.'] },
@@ -63,10 +63,10 @@
     'Your kingdom bonus triggers at the start of your turn.',
     'Your castle takes no damage from attacks.',
     'At the end of your turn, destroy the weakest enemy.',
-    '+2 attack to all, plus Straight and Flush bonuses.',
+    '+2 attack to all troops.',
     'You win the game!'
   ];
-  const FLUSH_TEXT = { H: 'heal castle 3', D: 'gain 2 Coins', S: 'draw 1 card', C: 'troops +1 attack', U: 'troops +1/+1' };
+  const FLUSH_TEXT = { H: 'heal castle 3', D: 'gain 1 Coin', S: 'draw 1 card', C: 'troops +1 attack', U: 'troops +1/+1' };
 
   // ---------- card keys ----------
   // key format: <suit><rank>[:variant]   e.g. H7, H7:f, H13:a, HA, HA:o, JT, JF:c, HB13 (bloodless token)
@@ -262,7 +262,8 @@
     const p = s.players[side];
     const cards = [];
     p.board.forEach((u, slot) => { if (u) { const r = unitRank(u); if (r) cards.push({ r, suit: unitSuit(u), slot }); } });
-    const res = { rank: 0, name: HAND_NAMES[0], slots: [], flushSuit: null };
+    const res = { rank: 0, name: HAND_NAMES[0], slots: [], flushSuit: null, has: [], lit: [], why: '',
+      parts: { pair: [], twoPair: false, trips: [], straight: false, flush: false, full: false, quads: false, sflush: false, royal: false } };
     if (!cards.length) return res;
     const allSuits = p.solidUntil >= s.turn;
     const byR = {};
@@ -291,6 +292,41 @@
     else if (g0 === 2) { res.rank = 1; res.slots = groups[0].slots; }
     res.name = HAND_NAMES[res.rank];
     if (!flush) res.flushSuit = null;
+    // every hand present on the board (bonuses stack)
+    const multi = groups.filter(g => g.slots.length >= 2);
+    const P = res.parts = {
+      pair: [].concat(...multi.map(g => g.slots)),
+      twoPair: multi.length >= 2,
+      trips: [].concat(...groups.filter(g => g.slots.length >= 3).map(g => g.slots)),
+      straight, flush,
+      full: g0 >= 3 && g1 >= 2,
+      quads: g0 >= 4,
+      sflush: straight && flush,
+      royal: straight && flush && high === 14
+    };
+    const has = [];
+    if (P.royal) has.push(9);
+    if (P.sflush) has.push(8);
+    if (P.quads) has.push(7);
+    if (P.full) has.push(6);
+    if (P.flush) has.push(5);
+    if (P.straight) has.push(4);
+    if (P.trips.length) has.push(3);
+    if (P.twoPair) has.push(2);
+    if (P.pair.length) has.push(1);
+    res.has = has;
+    res.lit = Array.from(new Set([].concat(P.pair, (straight || flush) ? all : []))).sort();
+    // plain-English reason for the best hand
+    const nm = r => rankLabel(r);
+    const why = [];
+    if (P.royal) why.push('10, J, Q, K, A all ' + KINGDOMS[res.flushSuit || p.suit].suit);
+    else if (P.straight || P.flush) {
+      const rs = cards.map(c => c.r).sort((a, b) => a - b);
+      if (P.straight) why.push('five in a row: ' + rs.map(nm).join('-'));
+      if (P.flush) why.push('all five ' + (allSuits && new Set(cards.map(c => c.suit)).size > 1 ? 'count as one suit (Solidarity)' : KINGDOMS[res.flushSuit].suit));
+    }
+    multi.forEach(g => why.push((g.slots.length === 2 ? 'two ' : g.slots.length === 3 ? 'three ' : 'four ') + nm(g.r) + 's'));
+    res.why = why.join(' + ');
     return res;
   }
 
@@ -299,11 +335,11 @@
     if (!u) return 0;
     hand = hand || evalBoard(s, side);
     let a = u.atk + u.tmp + u.perm + u.grow + (p.bonusAtk || 0);
-    if (hand.rank === 1 && hand.slots.includes(slot)) a += 1;
-    if (hand.rank === 8) a += 2;
-    if (!u.hidden && def(u.key).type === 'troop' && def(u.key).suit === 'D' && p.coins >= 2) a += 1;
+    if (hand.parts && hand.parts.pair.includes(slot)) a += 1;
+    if (hand.parts && hand.parts.sflush) a += 2;
+    if (!u.hidden && def(u.key).type === 'troop' && def(u.key).suit === 'D' && p.coins >= 3) a += 1;
     if (!u.hidden && def(u.key).type === 'troop' && def(u.key).suit === 'U') {
-      let n = 0; p.board.forEach((o, j) => { if (o && j !== slot && unitSuit(o) === 'U') n++; }); a += (n >= 1 ? 1 : 0) + (n >= 3 ? 1 : 0);
+      let n = 0; p.board.forEach((o, j) => { if (o && j !== slot && unitSuit(o) === 'U') n++; }); a += (n >= 1 ? 1 : 0) + (n >= 2 ? 1 : 0);
     }
     return Math.max(0, a);
   }
@@ -322,11 +358,11 @@
     p.board.forEach((u, slot) => {
       if (!u || u.hidden) return;
       const d = def(u.key);
-      if (d.type === 'troop' && d.suit === 'C' && u.grow < 1) u.grow++;
+      if (d.type === 'troop' && d.suit === 'C' && u.grow < 2) u.grow++;
       if (d.awaken) { ev(s, { t: 'abil', side: i, slot, name: d.abilityName }); runPlayAbility(s, i, slot, u); }
     });
     const h = evalBoard(s, i);
-    if (h.rank === 5 || h.rank === 8 || (h.rank === 9)) flushBonus(s, i, h.flushSuit || p.suit);
+    if (h.parts && h.parts.flush) flushBonus(s, i, h.flushSuit || p.suit);
     ev(s, { t: 'turn', side: i });
     log(s, '— ' + p.name + "'s turn —");
     checkWin(s);
@@ -336,7 +372,7 @@
     const p = s.players[i];
     ev(s, { t: 'banner', side: i, text: 'Flush: ' + FLUSH_TEXT[suit] });
     if (suit === 'H') healCastle(s, i, 3);
-    else if (suit === 'D') p.coins = Math.min(5, p.coins + 2);
+    else if (suit === 'D') p.coins = Math.min(5, p.coins + 1);
     else if (suit === 'S') draw(s, i);
     else if (suit === 'C') p.board.forEach(u => { if (u) u.perm += 1; });
     else if (suit === 'U') p.board.forEach(u => { if (u) { u.perm += 1; u.maxHp += 1; u.hp += 1; } });
@@ -395,7 +431,7 @@
     const p = s.players[side]; const u = p.board[slot];
     if (!u || n <= 0) return;
     const h = evalBoard(s, side);
-    if (h.rank === 2) n = Math.max(0, n - 1);
+    if (h.parts && h.parts.twoPair) n = Math.max(0, n - 1);
     if (!n) return;
     u.hp -= n; ev(s, { t: 'dmg', side, slot, n });
     if (u.hp <= 0) {
@@ -489,7 +525,7 @@
 
   function onEnter(s, i, slot, u, target) {
     const d = def(u.key); const p = s.players[i];
-    if (d.type === 'troop' && d.suit === 'D') { p.coins = Math.min(5, p.coins + 1); ev(s, { t: 'abil', side: i, slot, name: 'Tithe' }); }
+    if (d.type === 'troop' && d.suit === 'D') { p.coins = Math.min(4, p.coins + 1); ev(s, { t: 'abil', side: i, slot, name: 'Tithe' }); }
     if (d.abilKind === 'play' || d.abil === 'truth') { ev(s, { t: 'abil', side: i, slot, name: d.abilityName }); runPlayAbility(s, i, slot, u, target); }
   }
 
@@ -592,20 +628,26 @@
       }
       case 'reveal': flip(s, side, a.slot); break;
       case 'blood': { const u = p.board[a.slot]; u.bp = true; u.tmp += 3; damageCastle(s, side, 1); ev(s, { t: 'abil', side, slot: a.slot, name: 'Blood Price' }); break; }
-      case 'power': usePower(s, side); break;
+      case 'power': usePower(s, side, a.target); break;
       case 'end': endTurn(s); break;
     }
     checkWin(s);
     return null;
   }
 
-  function usePower(s, i) {
+  function usePower(s, i, target) {
     const p = s.players[i]; const L = def(p.leader);
     p.powerUses--;
     ev(s, { t: 'power', side: i, name: L.abilityName });
     log(s, p.name + ' uses ' + L.abilityName + '!');
     switch (L.power) {
-      case 'rally': healCastle(s, i, 8); break;
+      case 'rally': {
+        healCastle(s, i, 6);
+        let t = target != null && p.board[target] ? target : -1;
+        if (t < 0) { let ba = -1; p.board.forEach((x, j) => { if (x) { const a = effAtk(s, i, j); if (a > ba) { ba = a; t = j; } } }); }
+        if (t >= 0) { const x = p.board[t]; if (!def(x.key).token) x.hp = x.maxHp; x.tmp += 2; ev(s, { t: 'abil', side: i, slot: t, name: 'Rallied!' }); }
+        break;
+      }
       case 'laststand': p.board.forEach(u => { if (u) u.tmp += 2; }); break;
       case 'treasury': p.crowns += 3; break;
       case 'windfall': draw(s, i); draw(s, i); p.coins = Math.min(5, p.coins + 2); break;
@@ -637,7 +679,7 @@
     let h = evalBoard(s, i);
     ev(s, { t: 'endturn', side: i });
     if (h.rank === 9) { ev(s, { t: 'banner', side: i, text: 'ROYAL FLUSH!' }); log(s, p.name + ' completes a Royal Flush!'); o.castle = 0; checkWin(s); return; }
-    if (h.rank === 7) {
+    if (h.parts && h.parts.quads) {
       let bj = -1, bv = 1e9;
       o.board.forEach((x, j) => { if (x) { const v = effAtk(s, 1 - i, j) + x.hp; if (v < bv) { bv = v; bj = j; } } });
       if (bj >= 0) { ev(s, { t: 'banner', side: i, text: 'Four of a Kind!' }); destroy(s, 1 - i, bj); }
@@ -658,18 +700,18 @@
         if (bj >= 0) target = bj; else toCastle = true;
       } else if (!o.board[lane]) toCastle = true;
       ev(s, { t: 'attack', side: i, slot: lane, tslot: toCastle ? 'castle' : target });
-      const straightBonus = (h.rank === 4 || h.rank === 8) ? 1 : 0;
+      const straightBonus = h.parts && h.parts.straight ? 1 : 0;
       if (toCastle) {
-        if (oh.rank === 6) { ev(s, { t: 'block', side: 1 - i }); }
+        if (oh.parts && oh.parts.full) { ev(s, { t: 'block', side: 1 - i }); }
         else damageCastle(s, 1 - i, atk + straightBonus);
       } else {
         const t = o.board[target];
         const counter = effAtk(s, 1 - i, target, oh);
-        const firstStrike = h.rank === 3 && h.slots.includes(lane);
+        const firstStrike = h.parts && h.parts.trips.includes(lane);
         damageUnit(s, 1 - i, target, atk);
         if (hasAbil(u, 'smash')) { [target - 1, target + 1].forEach(j => { if (j >= 0 && j < BOARD && o.board[j]) damageUnit(s, 1 - i, j, atk); }); }
         if (!firstStrike && p.board[lane] === u && counter > 0) damageUnit(s, i, lane, counter);
-        if (straightBonus && oh.rank !== 6) damageCastle(s, 1 - i, straightBonus);
+        if (straightBonus && !(oh.parts && oh.parts.full)) damageCastle(s, 1 - i, straightBonus);
         void t;
       }
       checkWin(s);
